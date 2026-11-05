@@ -13,9 +13,14 @@ describe('dashboard routes', () => {
     ['#/review/1', { role: 'review', floor: 1, pr: null }],
     ['#/review/1/42', { role: 'review', floor: 1, pr: 42 }],
     ['#/metrics', { role: 'metrics' }],
-    ['#/settings/notifications', { role: 'settings', tab: 'notifications' }],
-    ['#/settings/accessibility', { role: 'settings', tab: 'accessibility' }],
+    ['#/settings/floors', { role: 'settings', tab: 'floors' }],
+    ['#/settings/team', { role: 'settings', tab: 'team' }],
+    ['#/settings/issues', { role: 'settings', tab: 'issues' }],
     ['#/settings/office', { role: 'settings', tab: 'office' }],
+    ['#/settings/notifications', { role: 'settings', tab: 'notifications' }],
+    ['#/settings/cloud', { role: 'settings', tab: 'cloud' }],
+    ['#/settings/voice', { role: 'settings', tab: 'voice' }],
+    ['#/settings/accessibility', { role: 'settings', tab: 'accessibility' }],
   ];
 
   it('parses each route and formats it back to the same hash', () => {
@@ -42,8 +47,8 @@ describe('dashboard routes', () => {
     expect(parseRoute('#/dev/2/whatever')).toEqual({ role: 'dev', floor: 2, view: 'board' });
     expect(parseRoute('#/review/1/abc')).toEqual({ role: 'review', floor: 1, pr: null });
     expect(parseRoute('#/review/1/-3')).toEqual({ role: 'review', floor: 1, pr: null });
-    expect(parseRoute('#/settings')).toEqual({ role: 'settings', tab: 'notifications' });
-    expect(parseRoute('#/settings/bogus')).toEqual({ role: 'settings', tab: 'notifications' });
+    expect(parseRoute('#/settings')).toEqual({ role: 'settings', tab: 'floors' });
+    expect(parseRoute('#/settings/bogus')).toEqual({ role: 'settings', tab: 'floors' });
     expect(parseRoute('#/ceo/bogus')).toEqual({ role: 'ceo', pane: 'chat' });
   });
 
@@ -89,7 +94,7 @@ describe('moving around', () => {
     expect(roleRoute('dev', 2)).toEqual({ role: 'dev', floor: 2, view: 'board' });
     expect(roleRoute('review', null)).toEqual({ role: 'review', floor: null, pr: null });
     expect(roleRoute('metrics', 2)).toEqual({ role: 'metrics' });
-    expect(roleRoute('settings', 2)).toEqual({ role: 'settings', tab: 'notifications' });
+    expect(roleRoute('settings', 2)).toEqual({ role: 'settings', tab: 'floors' });
   });
 
   it('changes the floor of a route that has one, and drops a PR from another floor', () => {

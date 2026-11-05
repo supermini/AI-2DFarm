@@ -6,7 +6,8 @@ export const ROLES: Role[] = ['ceo', 'dev', 'review', 'metrics', 'settings'];
 
 export type CeoPane = 'chat' | 'approvals';
 export type DevView = 'board' | 'terminals';
-export const SETTINGS_TABS = ['notifications', 'accessibility', 'office'] as const;
+// The manager's console sections the dashboard keeps (ui/consoleSections.tsx), then this device's and the office's.
+export const SETTINGS_TABS = ['floors', 'team', 'issues', 'office', 'notifications', 'cloud', 'voice', 'accessibility'] as const;
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export type Route =

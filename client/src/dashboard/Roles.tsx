@@ -1,6 +1,6 @@
 // The dashboard's screens, one per role, built from pocket mode's panels for now: the CEO (chat and approvals), the
 // developer (the board and the team), the reviewer (the floor's PRs; the real review panel comes later), metrics (each
-// floor's pipeline) and settings (this device).
+// floor's pipeline) and settings (the manager's console sections and this device).
 import { useEffect } from 'react';
 import { qaKey, useStore } from '../store';
 import { CEO_ID, type PullInfo, type QaView, type RepoView } from '../../../shared/types';
@@ -8,6 +8,9 @@ import { qaCardNote } from '../qaCard';
 import { KanbanView } from '../ui/KanbanView';
 import { NotifySettings } from '../ui/NotifySettings';
 import { AccessibilitySettings } from '../ui/AccessibilitySettings';
+import { CloudSettings } from '../ui/CloudSettings';
+import { VoiceSettings } from '../ui/VoiceSettings';
+import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
 import { Chat } from '../ui/Phone';
 import { setMode } from '../pocket/mode';
 import { Board, Company, type PocketTab } from '../pocket/Pocket';
@@ -200,28 +203,47 @@ export function MetricsScreen({ go }: { go: Go }) {
 
 // ---------- settings ----------
 
-const SETTINGS_LABELS: Record<SettingsTab, string> = { notifications: '🔔 Notifications', accessibility: '♿ Accessibility', office: '🏢 Office' };
+const SETTINGS_LABELS: Record<SettingsTab, string> = {
+  floors: '🏢 Floors & repos',
+  team: '👩‍💻 Team',
+  issues: '📝 Issues',
+  office: '⚙️ Office',
+  notifications: '🔔 Notifications',
+  cloud: '☁ Cloud',
+  voice: '🔊 Voice',
+  accessibility: '♿ Accessibility',
+};
 
-/** A placeholder until the settings screen: this device's settings, as in pocket mode. */
+/** Settings: the manager's console sections the dashboard keeps, one per chip (ui/consoleSections.tsx), and this device's. */
 export function SettingsScreen({ tab, go }: { tab: SettingsTab; go: Go }) {
   const version = useStore((s) => s.version);
+  const visit = (floor: number) => go({ role: 'dev', floor, view: 'board' });
   return (
-    <div className="pk-page">
+    <div className="pk-page dash-settings">
       <Chips label="Settings" items={SETTINGS_TABS.map((t) => [t, SETTINGS_LABELS[t]])} on={tab} pick={(t) => go({ role: 'settings', tab: t })} />
-      {tab === 'notifications' && <NotifySettings />}
-      {tab === 'accessibility' && <AccessibilitySettings pocket />}
+      {tab === 'floors' && <FloorsTab onVisit={visit} withOffice={false} />}
+      {tab === 'team' && <TeamTab />}
+      {tab === 'issues' && <IssuesTab />}
       {tab === 'office' && (
-        <div className="card">
-          <h3>🏢 The 3D office</h3>
-          <p className="muted small">
-            This dashboard is the office without the 3D building. The 3D office is still here: open it below, or add <code>?office=3d</code> to the address. This device remembers what you last chose.
-          </p>
-          <button className="btn" onClick={openOffice}>
-            🏢 Open the 3D office
-          </button>
-          {version && <p className="muted small">cubefarm {version}</p>}
+        <div className="tab-grid">
+          <OfficeUpdate />
+          <SettingsCards />
+          <div className="card">
+            <h3>🏢 The 3D office</h3>
+            <p className="muted small">
+              This dashboard is the office without the 3D building. The 3D office is still here: open it below, or add <code>?office=3d</code> to the address. This device remembers what you last chose.
+            </p>
+            <button className="btn" onClick={openOffice}>
+              🏢 Open the 3D office
+            </button>
+            {version && <p className="muted small">cubefarm {version}</p>}
+          </div>
         </div>
       )}
+      {tab === 'notifications' && <NotifySettings />}
+      {tab === 'cloud' && <CloudSettings />}
+      {tab === 'voice' && <VoiceSettings />}
+      {tab === 'accessibility' && <AccessibilitySettings pocket />}
     </div>
   );
 }
