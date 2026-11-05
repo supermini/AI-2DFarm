@@ -31,6 +31,9 @@ const open: HTMLElement[] = [];
 /** True while a dialog that traps focus is open. */
 export const dialogOpen = () => open.length > 0;
 
+/** The dialog on top (the one Esc is for), if any. */
+export const topDialog = (): HTMLElement | null => open[open.length - 1] ?? null;
+
 /** Makes the element in `ref` a modal dialog for the keyboard (give it tabIndex={-1} so it can hold focus itself). */
 export function useDialogFocus(ref: RefObject<HTMLElement | null>) {
   // Who had focus before the dialog, noted while rendering: by the time effects run, an autofocused field inside has it.

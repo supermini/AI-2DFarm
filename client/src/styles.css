@@ -5062,3 +5062,243 @@ html[data-high-contrast] :is(button, a, input, select, textarea, summary, [tabin
   outline-offset: 2px;
   box-shadow: 0 0 0 6px #ffe066;
 }
+
+/* ---------- the 2D dashboard (dashboard/Shell.tsx) ----------
+   >= 1024px: a rail of roles with labels; 760-1024px: icons only; < 760px: pocket mode's bottom tab bar. */
+.dash-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.dash-rail {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 176px;
+  padding: 10px 8px;
+  background: #23263a;
+  border-right: 3px solid var(--ink);
+  overflow-y: auto;
+}
+.dash-rail-logo {
+  font-size: 1.6rem;
+  color: #fff;
+  text-align: center;
+  padding: 4px 0 10px;
+}
+.dash-role {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
+  color: #b8bbd6;
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+.dash-role:hover {
+  background: #2f3350;
+}
+.dash-role-on {
+  background: #3b3f5c;
+  color: #fff;
+}
+.dash-role-icon {
+  position: relative;
+  font-size: 1.3rem;
+}
+.dash-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dash-narrow-logo {
+  display: none;
+}
+.dash-floor {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
+}
+.dash-floor-swatch {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 2.5px solid var(--ink);
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+.dash-floor select {
+  max-width: 220px;
+  padding: 6px 8px;
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--font);
+  font-weight: 600;
+}
+.dash-banners:not(:empty) {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+.dash-main {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.dash-tabs {
+  display: none;
+}
+.dash-chips-pad {
+  padding: 12px 12px 0;
+}
+/* CEO: the chat beside the approvals; one at a time below 1024px */
+.dash-main-ceo {
+  overflow: hidden;
+}
+.dash-ceo {
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+}
+.dash-ceo-chat {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dash-ceo-chat .phone-chat {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: var(--paper);
+}
+.dash-ceo-side {
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 3px solid var(--ink);
+}
+.dash-narrow-only {
+  display: none;
+}
+/* Developer: the board beside the team */
+.dash-dev-split {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr);
+  align-items: start;
+}
+/* Reviewer */
+.dash-pr-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.dash-pr-row-on {
+  outline: 3px solid var(--accent);
+}
+.dash-pr-sub {
+  display: block;
+}
+.dash-pr p {
+  margin: 0 0 8px;
+}
+/* the right drawer */
+.dash-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-left: 3px solid var(--ink);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+}
+.dash-drawer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  padding-top: max(12px, env(safe-area-inset-top));
+  border-bottom: 3px solid var(--ink);
+  background: var(--accent);
+}
+.dash-drawer-title {
+  flex: 1;
+  margin: 0;
+  font-size: 1.1rem;
+}
+.dash-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+@media (max-width: 1024px) {
+  .dash-rail {
+    width: 64px;
+  }
+  .dash-role {
+    justify-content: center;
+    padding: 10px 0;
+  }
+  .dash-role-label {
+    display: none;
+  }
+  .dash-ceo {
+    display: flex;
+    flex-direction: column;
+  }
+  .dash-ceo-chat,
+  .dash-ceo-side {
+    flex: 1;
+    border-left: none;
+  }
+  .dash-pane-off {
+    display: none;
+  }
+  .dash-narrow-only {
+    display: flex;
+  }
+  .dash-dev-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .dash-rail {
+    display: none;
+  }
+  .dash-narrow-logo {
+    display: inline;
+  }
+  .dash-tabs {
+    display: flex;
+  }
+  .dash-floor select {
+    max-width: 130px;
+  }
+}
