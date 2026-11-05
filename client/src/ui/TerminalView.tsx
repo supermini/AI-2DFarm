@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { CareerCard } from './CareerCard';
 import { api } from '../api';
 import { isBusy, kanbanFor, agentsOnRepo, useStore, type Agent } from '../store';
 import { AgentSetup } from './AgentSettings';
@@ -35,9 +34,20 @@ function elapsed(from: number | null, to: number | null) {
 
 /**
  * One agent's panel. The 3D office passes `onFollow` (the camera trails them; the button is hidden without it) and
- * `lookEditor` (the look editor, which needs the 3D preview).
+ * `lookEditor` (the look editor, which needs the 3D preview) and `careerCard` (the career card with its portrait; the
+ * 🏅 Career button is hidden without it).
  */
-export function TerminalView({ agentId, onFollow, lookEditor }: { agentId: string; onFollow?: (agentId: string) => void; lookEditor?: (agent: Agent) => ReactNode }) {
+export function TerminalView({
+  agentId,
+  onFollow,
+  lookEditor,
+  careerCard,
+}: {
+  agentId: string;
+  onFollow?: (agentId: string) => void;
+  lookEditor?: (agent: Agent) => ReactNode;
+  careerCard?: (agent: Agent) => ReactNode;
+}) {
   const agent = useStore((s) => s.agents[agentId]);
   const log = useStore((s) => s.logs[agentId]) ?? [];
   const shotAt = useStore((s) => s.screens[agentId]);
@@ -142,7 +152,7 @@ export function TerminalView({ agentId, onFollow, lookEditor }: { agentId: strin
               🎥 Follow
             </button>
           )}
-          {agent.career && (
+          {careerCard && agent.career && (
             <button className={`btn btn-small setup-toggle ${showCareer ? 'setup-toggle-on' : ''}`} aria-expanded={showCareer} title={`${agent.name}'s career on the team`} onClick={() => setShowCareer((v) => !v)}>
               🏅 Career
             </button>
@@ -218,7 +228,7 @@ export function TerminalView({ agentId, onFollow, lookEditor }: { agentId: strin
           </button>
         </div>
       )}
-      {showCareer && <CareerCard agent={agent} />}
+      {careerCard && showCareer && careerCard(agent)}
       {showSetup && (
         <div id="agent-setup" className="setup-wrap">
           <AgentSetup agent={agent} lookEditor={lookEditor?.(agent)} />
