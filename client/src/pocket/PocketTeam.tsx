@@ -6,7 +6,7 @@ import { agentsOnRepo, kanbanFor, useStore, type Agent } from '../store';
 import { CEO_ID, type RepoView } from '../../../shared/types';
 import { agentLabel, signInFor } from '../ui/floorRows';
 import { MessageBox } from '../ui/MessageBox';
-import { toolVerb } from '../world/draw';
+import { toolVerb } from '../toolVerb';
 import { agentActions, assignChoices, doing } from './pocketData';
 
 const STATUS_LABEL: Record<string, string> = { idle: 'free', preparing: 'setting up', working: 'working', done: 'done', error: 'needs help', stopped: 'stopped' };

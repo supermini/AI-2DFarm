@@ -1,6 +1,7 @@
 import type { LogLine, PreviewStatus, PreviewView, RepoView } from '../../../shared/types';
 import type { Agent, KanbanCard, KanbanColumns } from '../store';
 import { testingLabel } from '../qaCard';
+import { toolVerb } from '../toolVerb';
 import { officeNow } from '../officeTime';
 import { chipRects } from '../ui/channels';
 import { inkOn } from '../ui/colorMath';
@@ -57,18 +58,11 @@ const TERM = {
   thinking: '#f1fa8c',
 };
 
+/** Moved to ../toolVerb so the HTML UI doesn't import from world/. */
+export { toolVerb };
+
 const SPINNER = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
 const VERBS = ['Crafting', 'Pondering', 'Tinkering', 'Brewing', 'Noodling', 'Scheming', 'Assembling', 'Percolating'];
-
-export function toolVerb(tool: string | null): string {
-  if (!tool) return '';
-  if (tool.startsWith('mcp__playwright__')) return 'Browsing';
-  if (tool === 'Bash' || tool === 'PowerShell') return 'Running';
-  if (tool === 'Edit' || tool === 'Write' || tool === 'MultiEdit') return 'Editing';
-  if (tool === 'Read' || tool === 'Grep' || tool === 'Glob') return 'Reading';
-  if (tool === 'WebFetch' || tool === 'WebSearch') return 'Researching';
-  return tool;
-}
 
 export function drawTerminal(
   ctx: CanvasRenderingContext2D,

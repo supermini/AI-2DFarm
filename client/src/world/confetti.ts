@@ -2,6 +2,9 @@
 // event the store fires for MergeConfetti.tsx. Nothing is queued: a merge nobody is listening for is dropped.
 import type { AgentView, PullInfo, QaView, RepoView } from '../../../shared/types';
 
+// Moved to ../qaRecord so the store doesn't import from world/.
+export { recentQaRecord, rememberQa } from '../qaRecord';
+
 export interface MergeBurst {
   repoId: string;
   prNumber: number;
@@ -51,21 +54,6 @@ export const burstKind = (o: { hidden: boolean; covered: boolean; reducedMotion:
 
 /** Whether a flying burst (coins, confetti) may start now: not hidden, not covered, and not with reduced motion. */
 export const canBurst = (o: { hidden: boolean; covered: boolean; reducedMotion: boolean }) => burstKind(o) === 'confetti';
-
-// ---------- QA records that just left ----------
-
-// The server drops a PR's QA record (qaRemoved) just before it sends the repo update that shows the
-// merge, so the store keeps the last few here to still know the author.
-const recentQa = new Map<string, QaView>();
-const RECENT_KEEP = 30;
-
-export function rememberQa(key: string, q: QaView) {
-  recentQa.delete(key);
-  recentQa.set(key, q);
-  if (recentQa.size > RECENT_KEEP) recentQa.delete(recentQa.keys().next().value!);
-}
-
-export const recentQaRecord = (key: string) => recentQa.get(key);
 
 // ---------- the event ----------
 

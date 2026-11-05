@@ -2,11 +2,12 @@
 // it picking it up or finishing, a merge), what the 3D board shows while their sticky is on its way, and the per-agent
 // job queue that keeps a burst of moves orderly. StickyNotes.tsx runs it; the HTML Kanban panel never waits for it.
 
+import type { Col } from '../cards';
 import type { KanbanCard, KanbanColumns } from '../store';
 import { kanbanCapacity, kanbanNoteRect, KANBAN_KEYS } from './draw';
 import { BOARD, deskPosition, deskRotation } from './layout';
 
-export type Col = keyof KanbanColumns;
+export type { Col };
 
 /**
  * toQa: its author moves their sticky from In progress to In QA. take: a tester takes it off In QA to their desk.

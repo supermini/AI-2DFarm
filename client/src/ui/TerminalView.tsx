@@ -12,7 +12,7 @@ import { MessageBox } from './MessageBox';
 import { MicButton } from './MicButton';
 import { closeOverlay, Panel } from './Panel';
 import { loadScreenshot } from '../screenshot';
-import { toolVerb } from '../world/draw';
+import { toolVerb } from '../toolVerb';
 import { followAgent } from '../world/camera/rig';
 
 const STATUS_LABEL: Record<string, string> = {
