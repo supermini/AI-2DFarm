@@ -7,7 +7,7 @@ import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
 import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
-import { setMode } from '../pocket/mode';
+import { OFFICE_3D, setMode } from '../pocket/mode';
 import { Board } from '../pocket/Pocket';
 import { Team } from '../pocket/PocketTeam';
 import { CeoPanel } from './CeoPanel';
@@ -111,6 +111,7 @@ export function SettingsScreen({ tab, go }: { tab: SettingsTab; go: Go }) {
         <div className="tab-grid">
           <OfficeUpdate />
           <SettingsCards />
+          {OFFICE_3D ? (
           <div className="card">
             <h3>🏢 The 3D office</h3>
             <p className="muted small">
@@ -121,6 +122,9 @@ export function SettingsScreen({ tab, go }: { tab: SettingsTab; go: Go }) {
             </button>
             {version && <p className="muted small">cubefarm {version}</p>}
           </div>
+          ) : (
+            version && <p className="muted small">cubefarm {version}</p>
+          )}
         </div>
       )}
       {tab === 'notifications' && <NotifySettings />}

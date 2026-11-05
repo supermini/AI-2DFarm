@@ -10,7 +10,7 @@ import { NotifySettings } from '../ui/NotifySettings';
 import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { Panel } from '../ui/Panel';
 import { Chat } from '../ui/Phone';
-import { setMode } from './mode';
+import { OFFICE_3D, setMode } from './mode';
 import { approvalsBadge, pipelineOf, waitingOnYou, type Pipeline } from './pocketData';
 import { Approvals } from './PocketApprovals';
 import { Team } from './PocketTeam';
@@ -149,9 +149,11 @@ export function Company({ go, banners = true }: { go: (tab: PocketTab, repoId?: 
           </div>
         </div>
       ))}
-      <button className="btn pk-wide" onClick={openOffice}>
-        🏢 Open the 3D office
-      </button>
+      {OFFICE_3D && (
+        <button className="btn pk-wide" onClick={openOffice}>
+          🏢 Open the 3D office
+        </button>
+      )}
       {demo && <div className="pk-center small muted">DEMO MODE: fake repos, fake agents</div>}
       {version && <div className="pk-center small muted">cubefarm {version}</div>}
     </div>
@@ -215,9 +217,11 @@ function Settings({ onClose }: { onClose: () => void }) {
           This is the office without the 3D building, for phones and touch screens. It's picked on its own on small or touch screens; this device remembers what you last chose. To reach the office from your phone
           safely, see <a href="https://github.com/leonvanzyl/cubefarm/blob/main/docs/pocket.md">docs/pocket.md</a>.
         </p>
-        <button className="btn" onClick={openOffice}>
-          🏢 Open the 3D office
-        </button>
+        {OFFICE_3D && (
+          <button className="btn" onClick={openOffice}>
+            🏢 Open the 3D office
+          </button>
+        )}
       </div>
     </Panel>
   );
@@ -285,9 +289,11 @@ export default function Pocket() {
         {loaded && !setupDone ? (
           <div className="pk-page">
             <p>The office isn't set up yet. Finish the setup in the 3D office (on a computer is easiest), then come back.</p>
-            <button className="btn" onClick={openOffice}>
-              🏢 Open the 3D office
-            </button>
+            {OFFICE_3D && (
+              <button className="btn" onClick={openOffice}>
+                🏢 Open the 3D office
+              </button>
+            )}
           </div>
         ) : (
           <>

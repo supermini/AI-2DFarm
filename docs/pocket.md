@@ -9,7 +9,8 @@ The office opens as the 2D dashboard on every screen: a rail of roles (🧠 CEO,
 ⚙️ Settings) on a computer, and pocket mode's tab bar at the bottom on a phone. Each screen has its own address
 (`#/ceo`, `#/dev/2`, `#/review/1/42`, `#/metrics`, `#/settings/notifications`), so links and reloads land on it. The 3D
 office is an opt-in: `?office=3d` in the address for one visit, or **🏢 Open the 3D office** (remembered on this
-device; **📱 Pocket mode** on its start screen goes back). `?pocket=1` still asks for the 2D view, `?pocket=0` for 3D.
+device; **📱 Pocket mode** on its start screen goes back). `?pocket=1` still asks for the 2D view, `?pocket=0` for 3D. Only a build made with `VITE_OFFICE_3D=1` has the 3D
+office; the default build is the dashboard whatever the address or the device remembers.
 Pocket mode's five tabs, now under the roles:
 
 | Tab | What's there |

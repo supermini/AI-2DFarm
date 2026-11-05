@@ -41,7 +41,7 @@ It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swar
 | --- | --- |
 | `npm run typecheck` | `tsc --noEmit` over client, server, shared, the `.ts` in scripts and the configs |
 | `npm test` | Vitest, once (`npm run test:watch` to re-run on edits) |
-| `npm run build` | typecheck, `vite build` to `dist/`, then the server bundled into `dist-server/` (`scripts/build-server.mjs`) |
+| `npm run build` | typecheck, `vite build` to `dist/`, then the server bundled into `dist-server/` (`scripts/build-server.mjs`). The default build is the 2D dashboard only: no 3D office, no three.js. `VITE_OFFICE_3D=1 npm run build` also builds the 3D office (`?office=3d`, "Open the 3D office"); `test:e2e` and `bench` drive the 3D office, so run them against such a build |
 | `npm run test:e2e` | optional, local only: Playwright (`e2e/`, `playwright.config.ts`): builds (`E2E_SKIP_BUILD=1` reuses your `dist/`), boots a demo office on `E2E_PORT` (default 4399; set it to your reserved port) with a temp `SWARM_HOME`, and smoke-tests it headless in a local Google Chrome, else Playwright's Chromium. Stops at once if the browser is missing: never install it mid-task |
 | `node scripts/smoke-package.mjs` | after a build: packs the npm package, installs it into a temp folder and boots its demo |
 | `npm run bench -- --port <yours>` | after a build: the scale benchmark (`scripts/bench.mjs`): boots the big-company demo headless, visits the lobby and three floors, writes FPS, frame-time p95, CPU per frame, draw calls, triangles, heap, audio nodes and websocket traffic to a JSON report (`--help`) |

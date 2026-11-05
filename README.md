@@ -135,6 +135,8 @@ A gamepad works too (left stick walks, right stick looks, A uses, B goes back, X
 | `npx cubefarm --host 0.0.0.0` | listen on your network too, not just this computer (no sign-in: see below) |
 | `npx cubefarm --no-open` | don't open the browser |
 
+Building from source? `npm run build` makes the 2D dashboard only, with no 3D office or three.js in it. `VITE_OFFICE_3D=1 npm run build` also builds the 3D office, which then opens with `?office=3d` or **🏢 Open the 3D office** in Settings.
+
 ## Updating
 
 `npx` keeps using the version it downloaded first. When a newer one is out, cubefarm tells you as it starts. To update:
