@@ -25,7 +25,8 @@ export interface DropContext {
 export type DropAction =
   | { kind: 'assign'; agentId: string; issue: number }
   | { kind: 'qa'; agentId: string; pr: number }
-  | { kind: 'confirm-busy'; agentId: string; doing: string }
+  /** `waits`: a backlog issue's open blockers, so after "yes" the UI still asks the dependency question. */
+  | { kind: 'confirm-busy'; agentId: string; doing: string; waits?: number[] }
   | { kind: 'blocked'; waits: number[] }
   | { kind: 'none'; reason: string };
 
@@ -67,9 +68,9 @@ export function dropAction(card: KanbanCard, column: keyof KanbanColumns, agent:
 
   // Backlog: an issue to build. Busy first (as the 3D desk's warning does), then open blockers, then assign.
   if (column === 'backlog') {
-    if (busy) return { kind: 'confirm-busy', agentId: agent.id, doing: doing(agent) };
     const issue = ctx.issues.find((i) => i.number === card.number);
     const waits = issue ? blockers(issue.body, new Set(ctx.issues.map((i) => i.number))) : [];
+    if (busy) return { kind: 'confirm-busy', agentId: agent.id, doing: doing(agent), ...(waits.length ? { waits } : {}) };
     if (waits.length) return { kind: 'blocked', waits };
     return { kind: 'assign', agentId: agent.id, issue: card.number };
   }

@@ -87,10 +87,10 @@ describe('backlog issues', () => {
     expect(dropAction(issueCard(2), 'backlog', agent(), ctx(issues))).toEqual({ kind: 'assign', agentId: 'ada', issue: 2 });
   });
 
-  it('prefers the busy question over the dependency question', () => {
+  it('asks the busy question first and keeps the blockers for the dependency question after it', () => {
     const issues = [{ number: 1, body: '' }, { number: 2, body: 'Depends on #1' }];
     const busy = agent({ status: 'working', task: 'issue', issueNumber: 9 });
-    expect(dropAction(issueCard(2), 'backlog', busy, ctx(issues))).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9' });
+    expect(dropAction(issueCard(2), 'backlog', busy, ctx(issues))).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9', waits: [1] });
   });
 });
 
