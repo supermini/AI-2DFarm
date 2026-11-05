@@ -72,3 +72,22 @@
     display: none;
   }
 }
+
+.dash-throughput {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+.dash-spark {
+  display: flex;
+  flex: 1 1 200px;
+  align-items: flex-end;
+  gap: 2px;
+  height: 36px;
+}
+.dash-spark span {
+  flex: 1;
+  border-radius: 2px;
+  background: currentColor;
+}
