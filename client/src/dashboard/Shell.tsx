@@ -8,6 +8,8 @@ import { useStore } from '../store';
 import { Banners, PocketOverlay, Toasts } from '../pocket/Pocket';
 import { SetupWizard } from '../ui/SetupWizard';
 import { CeoScreen, DevScreen, MetricsScreen, ReviewScreen, SettingsScreen } from './Roles';
+import { ReplayBar } from '../ui/TimeLapse';
+import { ActivityFeed } from './ActivityFeed';
 import { roleBadges } from './badges';
 import { useShowFloor } from './visible';
 import { ROLES, roleRoute, routeFloor, withFloor, type Role, type Route } from './route';
@@ -52,7 +54,7 @@ function Screen({ route, go }: { route: Route; go: (r: Route) => void }) {
     case 'review':
       return <ReviewScreen floor={route.floor} pr={route.pr} go={go} />;
     case 'metrics':
-      return <MetricsScreen go={go} />;
+      return <MetricsScreen />;
     case 'settings':
       return <SettingsScreen tab={route.tab} go={go} />;
   }
@@ -122,6 +124,7 @@ export default function Shell() {
             <span className={`pk-dot ${connected ? 'pk-dot-on' : ''}`} title={connected ? 'Connected' : 'Not connected'} />
             <FloorPicker floor={floor} pick={pickFloor} />
             <span className="spacer" />
+            <ActivityFeed />
             {usage !== 'normal' && <span className="chip chip-warn">{usage === 'paused' ? '⏸ paused' : '🐢 pacing'}</span>}
           </header>
           <div className="dash-banners">
@@ -134,6 +137,7 @@ export default function Shell() {
         {ROLES.map((r) => roleButton(r, 'pk-tab'))}
       </nav>
       <Toasts />
+      <ReplayBar />
       <Suspense fallback={null}>
         <PocketOverlay />
       </Suspense>
