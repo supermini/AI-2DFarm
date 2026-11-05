@@ -46,7 +46,7 @@ export const DEFAULT_A11Y: A11yPrefs = {
   captionBg: 75,
   palette: 'standard',
   statusShapes: false,
-  fov: 72, // the camera's own field of view (world/Game.tsx)
+  fov: 72,
   headBob: true,
   cameraShake: true,
   reduceMotion: 'system',

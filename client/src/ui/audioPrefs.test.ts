@@ -27,11 +27,12 @@ describe('parseAudioPrefs', () => {
       voice: 100,
       outside: 100,
       score: 30,
+      mergeChime: false,
     });
   });
 
   it('round-trips saved group levels', () => {
-    const saved = { volume: 55, muted: false, soundtrack: false, chatter: 'lively', silentBubbles: true, steps: 0, typing: 35, babble: 40, toys: 80, alerts: 100, music: 45, voice: 60, outside: 60, score: 10 };
+    const saved = { volume: 55, muted: false, soundtrack: false, chatter: 'lively', silentBubbles: true, mergeChime: true, steps: 0, typing: 35, babble: 40, toys: 80, alerts: 100, music: 45, voice: 60, outside: 60, score: 10 };
     expect(parseAudioPrefs(JSON.stringify(saved))).toEqual(saved);
   });
 

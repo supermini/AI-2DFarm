@@ -1,30 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { collide, lobbyColliders, officeColliders, type Rect } from '../client/src/world/layout.ts';
-import { LIFT, ROUTES, fakeProfile, newWalker, poseOf, stepWalker } from './demoVisitors.ts';
-
-/** Every 10 cm along a closed route, someone standing there isn't pushed out of anything. */
-function blocked(route: { x: number; z: number }[], rects: Rect[]) {
-  const bad: string[] = [];
-  route.forEach((a, i) => {
-    const b = route[(i + 1) % route.length];
-    const n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.1);
-    for (let k = 0; k <= n; k++) {
-      const x = a.x + ((b.x - a.x) * k) / n;
-      const z = a.z + ((b.z - a.z) * k) / n;
-      const p = collide(x, z, rects);
-      if (Math.hypot(p.x - x, p.z - z) > 1e-6) bad.push(`${x.toFixed(1)},${z.toFixed(1)}`);
-    }
-  });
-  return bad;
-}
+import { LIFT, fakeProfile, newWalker, poseOf, stepWalker } from './demoVisitors.ts';
 
 describe('demo visitors', () => {
-  it('walk only through open floor, in the office and the lobby', () => {
-    expect(blocked(ROUTES.office, officeColliders())).toEqual([]);
-    expect(blocked(ROUTES.lobby, lobbyColliders())).toEqual([]);
-    expect(blocked([ROUTES.office[0], LIFT.door], officeColliders())).toEqual([]);
-  });
-
   it('stay out of sight until a real visitor is somewhere, then turn up on their floor', () => {
     const w = newWalker(0);
     expect(stepWalker(w, 0.1, null, () => 0.5).moved).toBe(false);

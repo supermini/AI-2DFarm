@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from '../api';
-import { isBusy, kanbanFor, agentsOnRepo, useStore, type Agent } from '../store';
+import { isBusy, kanbanFor, agentsOnRepo, useStore } from '../store';
 import { AgentSetup } from './AgentSettings';
 import { confirmDialog } from './Confirm';
 import { LiveTerminal } from './LiveTerminal';
@@ -41,22 +41,12 @@ const PanelFrame: TerminalFrame = ({ title, accent, children }) => (
   </Panel>
 );
 
-/**
- * One agent's panel. The 3D office passes `onFollow` (the camera trails them; the button is hidden without it) and
- * `lookEditor` (the look editor, which needs the 3D preview) and `careerCard` (the career card with its portrait; the
- * 🏅 Career button is hidden without it).
- */
+/** One agent's panel. */
 export function TerminalView({
   agentId,
-  onFollow,
-  lookEditor,
-  careerCard,
   frame: Frame = PanelFrame,
 }: {
   agentId: string;
-  onFollow?: (agentId: string) => void;
-  lookEditor?: (agent: Agent) => ReactNode;
-  careerCard?: (agent: Agent) => ReactNode;
   frame?: TerminalFrame;
 }) {
   const agent = useStore((s) => s.agents[agentId]);
@@ -70,7 +60,6 @@ export function TerminalView({
   const [pick, setPick] = useState('');
   const [busy, setBusy] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
-  const [showCareer, setShowCareer] = useState(false);
   const [, tick] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
   const stick = useRef(true);
@@ -157,21 +146,11 @@ export function TerminalView({
           )}
           {working && agent.currentTool && <span className="muted small">{toolVerb(agent.currentTool)}…</span>}
           <span className="spacer" />
-          {onFollow && (
-            <button className="btn btn-small" title={`Trail ${agent.name} with the camera wherever they go (a movement key or Esc gives you the controls back)`} onClick={() => onFollow(agent.id)}>
-              🎥 Follow
-            </button>
-          )}
-          {careerCard && agent.career && (
-            <button className={`btn btn-small setup-toggle ${showCareer ? 'setup-toggle-on' : ''}`} aria-expanded={showCareer} title={`${agent.name}'s career on the team`} onClick={() => setShowCareer((v) => !v)}>
-              🏅 Career
-            </button>
-          )}
           <button
             className={`btn btn-small setup-toggle ${showSetup ? 'setup-toggle-on' : ''}`}
             aria-expanded={showSetup}
             aria-controls="agent-setup"
-            title={`${agent.name}'s name, look, coding agent, model and effort`}
+            title={`${agent.name}'s name, coding agent, model and effort`}
             onClick={() => setShowSetup((v) => !v)}
           >
             ⚙️ Setup
@@ -238,10 +217,9 @@ export function TerminalView({
           </button>
         </div>
       )}
-      {careerCard && showCareer && careerCard(agent)}
       {showSetup && (
         <div id="agent-setup" className="setup-wrap">
-          <AgentSetup agent={agent} lookEditor={lookEditor?.(agent)} />
+          <AgentSetup agent={agent} />
         </div>
       )}
 

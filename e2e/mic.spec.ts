@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { enterOffice, expect, test } from './helpers';
+import { expect, openDashboard, test } from './helpers';
 
 // Talking instead of typing (docs/voice.md). Headless Chromium has no microphone: __swarmMic.fake() stands in for the
 // browser's speech recognition and __swarmMic.say() is what it hears. The ElevenLabs route is checked over HTTP.
@@ -34,13 +34,11 @@ const mic = (page: Page) =>
 const say = (page: Page, text: string, final = true) => page.evaluate(([t, f]) => (window as unknown as MicWindow).__swarmMic.say(t, f), [text, final] as const);
 const box = (page: Page) => page.locator('.chat-input textarea');
 
-/** The office with the fake recognition, and the phone open on the CEO chat. */
-async function phone(page: Page) {
-  await enterOffice(page);
+/** The CEO's chat with the fake recognition. */
+async function chat(page: Page) {
+  await openDashboard(page, '/#/ceo');
   await page.evaluate(() => (window as unknown as MicWindow).__swarmMic.fake());
-  await page.keyboard.press('p');
-  await expect(page.locator('.phone')).toBeVisible();
-  if (!(await box(page).isVisible())) await page.locator('.phone-tab').first().click(); // it opens on Team when a team change waits there
+  await box(page).click();
   await expect(box(page)).toBeFocused();
 }
 
@@ -49,8 +47,8 @@ async function managerTexts(page: Page): Promise<string[]> {
   return (state.messages as { from: string; text: string }[]).filter((m) => m.from === 'manager').map((m) => m.text);
 }
 
-test("holding V fills the phone's message box as you speak, a tap still types a 'v', and Send delivers it", async ({ page }) => {
-  await phone(page);
+test("holding V fills the chat's message box as you speak, a tap still types a 'v', and Send delivers it", async ({ page }) => {
+  await chat(page);
   await page.keyboard.press('v');
   await expect(box(page)).toHaveValue('v');
   await box(page).fill('');
@@ -71,7 +69,7 @@ test("holding V fills the phone's message box as you speak, a tap still types a 
 });
 
 test('a tap of the 🎙️ listens until you stop talking, sends by itself with auto-send on, and Esc stops it', async ({ page }) => {
-  await phone(page);
+  await chat(page);
   const button = page.locator('.chat-input .mic-btn');
 
   await button.click();
@@ -79,7 +77,7 @@ test('a tap of the 🎙️ listens until you stop talking, sends by itself with 
   expect((await mic(page)).mode).toBe('tap');
   await page.keyboard.press('Escape');
   await expect.poll(async () => (await mic(page)).state).toBe('idle');
-  await expect(box(page)).toBeVisible(); // Esc stopped the mic, not the phone
+  await expect(box(page)).toBeVisible(); // Esc stopped the mic, not the chat
 
   await page.request.patch('/api/settings', { data: { listen: { ...LISTEN, autoSend: true } } });
   await button.click();
@@ -92,10 +90,10 @@ test('a tap of the 🎙️ listens until you stop talking, sends by itself with 
   await page.request.patch('/api/settings', { data: { listen: LISTEN } });
 });
 
-test("hands-free: after the CEO's spoken reply the phone listens, and closes after 8 s of silence", async ({ page }) => {
+test("hands-free: after the CEO's spoken reply the chat listens, and closes after 8 s of silence", async ({ page }) => {
   expect((await page.request.put('/api/voice/key', { data: { key: 'demo-voice-key-1234' } })).ok()).toBe(true);
   await page.request.patch('/api/settings', { data: { voice: { provider: 'elevenlabs', voiceId: 'demoVoiceAvery00001', voiceName: 'Avery' }, listen: { ...LISTEN, handsFree: true } } });
-  await phone(page);
+  await chat(page);
   await expect(page.getByRole('button', { name: /Hands-free on/ })).toBeVisible();
 
   await box(page).fill('How is floor 1 doing?');
@@ -115,9 +113,7 @@ test('a browser without speech recognition explains itself and listens to nothin
     delete w.webkitSpeechRecognition;
     delete w.SpeechRecognition;
   });
-  await enterOffice(page);
-  await page.keyboard.press('p');
-  if (!(await box(page).isVisible())) await page.locator('.phone-tab').first().click();
+  await openDashboard(page, '/#/ceo');
   const button = page.locator('.chat-input .mic-btn');
   await expect(button).toHaveAttribute('title', /can't turn speech into text/);
   await button.click();

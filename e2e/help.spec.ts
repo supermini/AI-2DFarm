@@ -1,13 +1,22 @@
-import { enterOffice, expect, phoneButton, test } from './helpers';
+import { expect, openDashboard, test } from './helpers';
 
-// The help panel.
+// There's no help panel any more: finding your way is the rail and each screen's address.
 
-test('H opens help and Esc closes it', async ({ page }) => {
-  await enterOffice(page);
-  const help = page.getByText('How the office works', { exact: true });
-  await page.keyboard.press('h');
-  await expect(help).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(help).toBeHidden();
-  await expect(phoneButton(page)).toBeVisible();
+test('the rail reaches every role, and an address survives a reload', async ({ page }) => {
+  await openDashboard(page);
+  const rail = page.locator('.dash-rail');
+  for (const [name, hash] of [
+    ['Developer', /#\/dev/],
+    ['Reviewer', /#\/review/],
+    ['Metrics', /#\/metrics/],
+    ['Settings', /#\/settings/],
+    ['CEO', /#\/ceo/],
+  ] as const) {
+    await rail.getByRole('button', { name }).click();
+    await expect(page).toHaveURL(hash);
+    await expect(rail.getByRole('button', { name })).toHaveAttribute('aria-current', 'page');
+  }
+  await page.goto('/#/metrics');
+  await page.reload();
+  await expect(rail.getByRole('button', { name: 'Metrics' })).toHaveAttribute('aria-current', 'page');
 });

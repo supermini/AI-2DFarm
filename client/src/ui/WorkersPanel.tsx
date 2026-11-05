@@ -1,14 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { agentsOnRepo, useStore, type Agent } from '../store';
 import { CEO_ID, INSTALL_STEP, type LogLine, type RepoView } from '../../../shared/types';
-import { dialogOpen } from './dialogFocus';
-import { isKey, useKeyName } from './controls';
-import { Key } from './Key';
 
 // Who is busy with what, across the whole company: everyone working right now with their project and their latest
-// thought, reply or tool call. Idle workers are left out; the floor you're on comes first. Click someone to watch
-// their screen; L (Help → Controls) shows and hides the list. The 3D HUD passes `visitors` (the visitors list, which
-// belongs to the 3D set); the 2D dashboard passes `embedded`: a side list that needs no start screen and no key.
+// thought, reply or tool call. Idle workers are left out. Click someone to watch their screen.
 
 const isWorking = (a: Agent) => a.status === 'working' || a.status === 'preparing';
 const STORAGE_KEY = 'cubefarm:workers';
@@ -77,11 +72,9 @@ function loadCollapsed(): Set<string> {
   }
 }
 
-export function WorkersPanel({ visitors, embedded }: { visitors?: ReactNode; embedded?: boolean }) {
-  const floor = useStore((s) => s.floor);
+export function WorkersPanel() {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
-  const started = useStore((s) => s.started);
   const [open, setOpen] = useState(() => {
     try {
       return localStorage.getItem(STORAGE_KEY) !== 'closed';
@@ -115,32 +108,14 @@ export function WorkersPanel({ visitors, embedded }: { visitors?: ReactNode; emb
       }
       return !was;
     });
-  // Its key shows and hides it, like a game's player list. Not while a panel or question is open, while you're typing,
-  // or while you're moving through the HUD's buttons with Tab (it moves focus then, as everywhere else).
-  const key = useKeyName('workers');
-  useEffect(() => {
-    if (embedded) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (!isKey('workers', e.code) || e.repeat || e.altKey || e.ctrlKey || e.metaKey || useStore.getState().overlay || dialogOpen()) return;
-      const el = e.target as HTMLElement | null;
-      if (el?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
-      if (e.code === 'Tab' && el && el !== document.body && el.closest?.('.hud') && el.matches(':focus-visible')) return;
-      e.preventDefault();
-      toggle();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [embedded]);
   // While the list is out, the office sends everyone's latest line (net.ts).
-  const showing = open && (started || !!embedded);
   useEffect(() => {
-    useStore.getState().setWorkersOpen(showing);
+    useStore.getState().setWorkersOpen(open);
     return () => useStore.getState().setWorkersOpen(false);
-  }, [showing]);
-  if (!started && !embedded) return null;
+  }, [open]);
 
   const ceo = agents[CEO_ID];
-  const floors = [...repos].sort((x, y) => (x.floor === floor ? -1 : y.floor === floor ? 1 : x.floor - y.floor));
+  const floors = [...repos].sort((x, y) => x.floor - y.floor);
   const groups: Group[] = [
     ...(ceo && isWorking(ceo) ? [{ key: 'hq', label: 'HQ', title: 'The CEO, in the lobby', color: ceo.color, list: [ceo] }] : []),
     ...floors.map((r: RepoView) => ({
@@ -154,18 +129,15 @@ export function WorkersPanel({ visitors, embedded }: { visitors?: ReactNode; emb
   const total = groups.reduce((n, g) => n + g.list.length, 0);
 
   return (
-    <div className={`workers ${open ? '' : 'workers-closed'} ${embedded ? 'workers-embedded' : ''}`}>
-      <button className="wk-head" onClick={toggle} title={open ? `Hide the list${embedded ? '' : ` (${key})`}` : `Show who is working${embedded ? '' : ` (${key})`}`}>
+    <div className={`workers ${open ? '' : 'workers-closed'} workers-embedded`}>
+      <button className="wk-head" onClick={toggle} title={open ? 'Hide the list' : 'Show who is working'}>
         <span>
           Working <b>{total}</b>
         </span>
-        <span className="wk-chevron">
-          {!embedded && <Key action="workers" />} {open ? '▾' : '▸'}
-        </span>
+        <span className="wk-chevron">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
         <div className="wk-list">
-          {visitors}
           {total === 0 && <div className="wk-empty">Nobody is working right now.</div>}
           {groups.map((g) => {
             const shut = collapsed.has(g.key);

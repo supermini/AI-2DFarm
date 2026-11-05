@@ -497,10 +497,11 @@ function step(ev: HandsFreeEvent) {
   }
   if (r.effect === 'chime') {
     listenChime(true);
+    // A millisecond over: a timer can fire a hair early, and a tick before `until` waits for a next tick that never comes.
     hfTimer = setTimeout(() => {
       hfTimer = null;
       step({ type: 'tick', now: performance.now(), room: room() });
-    }, Math.max(0, (hf.kind === 'chime' ? hf.until : 0) - performance.now()));
+    }, Math.max(0, (hf.kind === 'chime' ? hf.until : 0) - performance.now()) + 1);
   }
   if (r.effect === 'open') {
     const phone = phoneTarget();

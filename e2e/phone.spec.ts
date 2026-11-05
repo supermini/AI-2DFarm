@@ -1,33 +1,25 @@
-import { enterOffice, expect, phoneButton, test } from './helpers';
+import { expect, openDashboard, test } from './helpers';
 
-// The phone: opening and closing it.
+// The dashboard on a phone: pocket mode's tab bar, the CEO's chat, and old addresses still landing here.
 
-test('the phone opens and closes with P, its button and Esc', async ({ page }) => {
-  await enterOffice(page);
-  const team = page.getByRole('tab', { name: /Team/ }); // one of the phone's tabs
-  const company = page.getByRole('tab', { name: /Company/ });
-  await page.keyboard.press('p');
-  await expect(team).toBeVisible();
-  await expect(phoneButton(page)).toBeHidden();
-  // The chat focuses its message box, where P types a "p"; from another tab P puts the phone away.
-  await company.click();
-  await expect(company).toHaveAttribute('aria-selected', 'true');
-  await page.keyboard.press('p');
-  await expect(team).toBeHidden();
+test.use({ viewport: { width: 390, height: 844 } });
 
-  // Closing a panel grabs the mouse again (#42); a locked pointer can't click the HUD, so let go of it first. The lock
-  // request is async: wait for it to land (or be refused) before letting go, or it lands after and eats the click.
-  await page
-    .waitForFunction(() => document.pointerLockElement !== null, undefined, { timeout: 3000 })
-    .catch(() => undefined);
-  await page.evaluate(() => document.exitPointerLock());
-  await page.waitForFunction(() => document.pointerLockElement === null);
-  // Clicks are also ignored for a moment after a panel closes (so a double click can't act through it): retry.
-  await expect(async () => {
-    await phoneButton(page).click();
-    await expect(team).toBeVisible({ timeout: 1000 });
-  }).toPass();
-  await page.keyboard.press('Escape');
-  await expect(team).toBeHidden();
-  await expect(phoneButton(page)).toBeVisible();
+test('the tab bar replaces the rail and reaches every role', async ({ page }) => {
+  await openDashboard(page);
+  const tabs = page.locator('.dash-tabs');
+  await expect(tabs).toBeVisible();
+  await expect(page.locator('.dash-rail')).toBeHidden();
+  await tabs.getByRole('button', { name: 'Developer' }).click();
+  await expect(page).toHaveURL(/#\/dev/);
+  await tabs.getByRole('button', { name: 'CEO' }).click();
+  await expect(page.locator('.chat-input textarea')).toBeVisible();
+});
+
+test('?pocket= and a remembered 3D office land on the dashboard', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('cubefarm:mode', 'office'));
+  for (const path of ['/?pocket=0', '/?pocket=1', '/?office=3d', '/']) {
+    await openDashboard(page, path);
+    await expect(page.locator('.dash-tabs')).toBeVisible();
+    await expect(page.locator('canvas')).toHaveCount(0);
+  }
 });

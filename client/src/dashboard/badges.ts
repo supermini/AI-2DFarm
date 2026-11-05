@@ -1,5 +1,5 @@
 // The dashboard's role badges (rail and tab bar): what waits on the manager, per role. Pure, from the store's fields,
-// and built from the helpers pocket mode and the 3D console use so the counts match them.
+// and built from pocket mode's helpers so the counts match them.
 import type { DoctorFinding, HireRequestView, OpsAlarm, PhoneMessage, QaView, RepoView } from '../../../shared/types';
 import { needsManager } from '../qaCard';
 import { approvalsBadge, waitingOnYou } from '../pocket/pocketData';

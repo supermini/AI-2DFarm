@@ -82,7 +82,7 @@ function QaLink({ card }: { card: KanbanCard }) {
   );
 }
 
-/** What a card can do, shared by the 3D console's board and the dashboard's: REST calls with their questions, one at a time per card. */
+/** What a card can do, for the dashboard's board: REST calls with their questions, one at a time per card. */
 export function useCardActions(repoId: string, defaultBranch: string) {
   const [pending, setPending] = useState<string | null>(null);
   const act = async (key: string, fn: () => Promise<unknown>) => {

@@ -1,3 +1,4 @@
+import { formatRoute } from '../dashboard/route';
 import { useEffect } from 'react';
 import { api } from '../api';
 import { fmtDuration, fmtPct, fmtUsd, usageMeter } from '../ops';
@@ -89,9 +90,11 @@ function UsageCard({ hot }: { hot: boolean }) {
   );
 }
 
+/** To that floor's board in the dashboard. */
+const visitFloor = (floor: number) => (location.hash = formatRoute({ role: 'dev', floor, view: 'board' }));
+
 function AlarmCard({ alarm, repo, hot }: { alarm: OpsAlarm; repo: RepoView | undefined; hot: boolean }) {
   const openOverlay = useStore((s) => s.openOverlay);
-  const goToFloor = useStore((s) => s.goToFloor);
   const pr = alarm.prNumber !== null ? repo?.pulls.find((p) => p.number === alarm.prNumber) : undefined;
   return (
     <div id={`ops-card-${alarm.id}`} className={`card floor-card alarm-card ${hot ? 'ops-card-hot' : ''}`} style={{ ['--accent' as string]: repo?.color ?? '#ef476f' }}>
@@ -108,7 +111,7 @@ function AlarmCard({ alarm, repo, hot }: { alarm: OpsAlarm; repo: RepoView | und
       <div className="row wrap">
         {alarm.kind === 'pr' && alarm.prNumber !== null ? (
           <>
-            <button className="btn btn-small" onClick={() => openOverlay({ kind: 'kanban', repoId: alarm.repoId })}>
+            <button className="btn btn-small" onClick={() => visitFloor(alarm.floor)}>
               📋 Open the Kanban
             </button>
             <button className="btn btn-small btn-good" onClick={() => void attempt(() => api.sendToQa(alarm.repoId, alarm.prNumber!))}>
@@ -136,7 +139,7 @@ function AlarmCard({ alarm, repo, hot }: { alarm: OpsAlarm; repo: RepoView | und
           )
         )}
         <span className="spacer" />
-        <button className="btn btn-small btn-ghost" onClick={() => goToFloor(alarm.floor)}>
+        <button className="btn btn-small btn-ghost" onClick={() => visitFloor(alarm.floor)}>
           Visit floor {alarm.floor}
         </button>
       </div>
@@ -305,7 +308,7 @@ export function OpsTab({ card }: { card?: string }) {
       <div>
         <UsageCard hot={card === 'usage'} />
         <h3 className="section">🚨 Needs you {alarms.length > 0 && <span className="badge">{alarms.length}</span>}</h3>
-        {alarms.length === 0 && <p className="muted small">All clear. The beacon on the lobby's mission control wall spins when a PR needs you or an agent has been stuck on an error for 10 minutes.</p>}
+        {alarms.length === 0 && <p className="muted small">All clear. Cards show up here when a PR needs you or an agent has been stuck on an error for 10 minutes.</p>}
         {alarms.map((a) => (
           <AlarmCard key={a.id} alarm={a} repo={repos.find((r) => r.id === a.repoId)} hot={a.id === card} />
         ))}

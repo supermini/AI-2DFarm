@@ -1,4 +1,4 @@
-// The 2D dashboard (docs/pocket.md): the office without the 3D building, on the same store, snapshot and REST. A rail
+// The 2D dashboard (docs/pocket.md), on the store, snapshot and REST. A rail
 // of roles (CEO, developer, reviewer, metrics, settings) on wide screens, icons only on medium ones and pocket mode's
 // bottom tab bar on phones; a top bar with the floor picker and the office's banners; the screen the hash route names
 // (route.ts); a right drawer for the context item. A fresh office shows the setup wizard first.

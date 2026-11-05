@@ -4,9 +4,6 @@
 // (headless browsers), sounds just don't play, but window.__swarmSfx still records them.
 // Messages read aloud (voiceMessages.ts) have their own 'voice' group, which skips the bus that ducks everything else.
 // While the 🎙 listens (mic.ts) everything dips, the voice too, and event cues wait until it closes.
-// The 3D office adds the rest when it loads (sfxSpatial.ts registers it): sounds placed in the world pan and fade with
-// distance from the camera, the walls muffle them, and each group sends a little into the room's reverb. Without it
-// (pocket mode) a sound placed in the world just plays flat. This file must never import world/ (or anything that does).
 
 import { normalizeAudioPrefs, parseAudioPrefs, SOUND_GROUPS, sliderGain, type AudioPrefs, type SoundGroup } from './audioPrefs';
 import { DROP_NEW, PLAY, type Vec3, voiceToDrop } from './sfxMix';
@@ -30,8 +27,6 @@ const listeners = new Set<() => void>();
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let bus: GainNode | null = null; // every sound but the voice, so a message read aloud can duck them
-let mixOut: GainNode | null = null; // the finished mix, as the speakers get it
-let tap: MediaStreamAudioDestinationNode | null = null;
 let unlocked = false;
 const groupGains: Partial<Record<SoundGroup, GainNode>> = {};
 const groupLevels = {} as Record<SoundGroup, number>;
@@ -66,7 +61,6 @@ export function audio(): { ctx: AudioContext; out: GainNode } | null {
       const trim = ctx.createGain();
       trim.gain.value = COMPRESSOR_TRIM;
       master.connect(comp).connect(trim).connect(ctx.destination);
-      mixOut = trim;
       bus = ctx.createGain();
       bus.connect(master);
       for (const g of SOUND_GROUPS) {
@@ -85,22 +79,7 @@ export function audio(): { ctx: AudioContext; out: GainNode } | null {
   }
 }
 
-/** Everything the office plays, as the speakers get it, as a MediaStream for photo mode's clips; null while audio is off. */
-export function soundStream(): MediaStream | null {
-  audio();
-  if (!ctx || !mixOut) return null;
-  try {
-    if (!tap) {
-      tap = ctx.createMediaStreamDestination();
-      mixOut.connect(tap);
-    }
-    return tap.stream;
-  } catch {
-    return null;
-  }
-}
-
-/** Start audio from a user gesture ("Enter the office", or any first click/key). */
+/** Start audio from a user gesture (the first click or key). */
 export function unlockAudio() {
   unlocked = true;
   audio();
@@ -521,92 +500,6 @@ export function chirp() {
   [1046.5, 1568].forEach((freq, i) => tone({ name: 'chirp', group: 'alerts', freq, type: 'triangle', at: i * 0.11, dur: 0.18, peak: 0.12 }));
 }
 
-/** The roomba's happy chirp, from where it is: a quick rising warble and a bright little "boop". */
-export function roombaChirp(pos: Vec3) {
-  const o = { name: 'roomba:chirp', group: 'toys', pos } as const;
-  tone({ ...o, freq: 660, to: 1320, type: 'square', dur: 0.12, peak: 0.035 });
-  tone({ ...o, freq: 1320, to: 990, type: 'triangle', at: 0.12, dur: 0.1, peak: 0.08 });
-  tone({ ...o, freq: 1760, type: 'triangle', at: 0.24, dur: 0.18, peak: 0.07 });
-}
-
-/** The elevator "ding": two soft sine tones (from the doors at `pos`, when someone else arrives). */
-export function ding(pos?: Vec3) {
-  [880, 1318.5].forEach((freq, i) => tone({ name: 'ding', group: 'alerts', pos, freq, at: i * 0.16, dur: 1.1, peak: 0.18, attack: 0.02 }));
-}
-
-/** Air rushing past the elevator car while it travels, rising then settling. */
-export function whoosh(dur = 0.75) {
-  noise({ name: 'whoosh', group: 'alerts', dur, peak: 0.1, filter: 'bandpass', freq: 220, to: 900, q: 0.8, attack: dur * 0.45 });
-  tone({ name: 'whoosh', group: 'alerts', freq: 70, to: 55, dur, peak: 0.05, attack: dur * 0.4 });
-}
-
-/** A side door sliding open (a rising whoosh) or shut (a falling one, with a soft bump at the end), from the doorway. */
-export function doorSlide(pos: Vec3, opening: boolean) {
-  const name = opening ? 'door:open' : 'door:close';
-  noise({ name, group: 'alerts', pos, dur: 0.45, peak: 0.07, filter: 'bandpass', freq: opening ? 300 : 1100, to: opening ? 1300 : 280, q: 0.9, attack: 0.15 });
-  if (!opening) tone({ name, group: 'alerts', pos, at: 0.4, freq: 110, to: 70, dur: 0.12, peak: 0.05, attack: 0.005 });
-}
-
-/** Someone hit by a toy: a soft, round "boop", from where they sit (`pos`). */
-export function boop(pos?: Vec3) {
-  tone({ name: 'boop', group: 'toys', pos, freq: 520, to: 330, dur: 0.16, peak: 0.13, attack: 0.008 });
-  tone({ name: 'boop', group: 'toys', pos, freq: 1040, to: 660, type: 'triangle', dur: 0.07, peak: 0.025, attack: 0.004 });
-}
-
-/** The roomba sucking up a dart: a rising slurp of air with a little pop at the end. */
-export function slurp(pos: Vec3) {
-  const o = { name: 'roomba:slurp', group: 'toys', pos } as const;
-  noise({ ...o, dur: 0.28, peak: 0.07, filter: 'bandpass', freq: 350, to: 2400, q: 2.2, attack: 0.05 });
-  tone({ ...o, freq: 220, to: 660, type: 'triangle', dur: 0.24, peak: 0.035, attack: 0.03 });
-  noise({ ...o, at: 0.24, dur: 0.05, peak: 0.05, filter: 'bandpass', freq: 1800, q: 1.5, attack: 0.002 });
-}
-
-/** A basket: the net's swish, then a small cheer. */
-export function swish() {
-  noise({ dur: 0.3, peak: 0.14, filter: 'bandpass', freq: 5200, to: 2600, q: 0.8, attack: 0.03, group: 'toys' });
-  noise({ at: 0.18, dur: 0.9, peak: 0.05, filter: 'bandpass', freq: 900, to: 1500, q: 0.5, attack: 0.2, group: 'toys' });
-  [784, 988, 1318.5].forEach((freq, i) => tone({ freq, type: 'triangle', at: 0.2 + i * 0.08, dur: 0.3, peak: 0.06, group: 'toys' }));
-}
-
-let lastGong = -Infinity;
-
-// A gong's inharmonic partials over its ~92 Hz fundamental: [ratio, peak, seconds to fade out]. The low ones ring
-// longest; the ratios are off whole numbers, which is what makes it a gong rather than a bell or a chord.
-const GONG_F0 = 92;
-const GONG_PARTIALS: [number, number, number][] = [
-  [1.52, 0.09, 5],
-  [2.03, 0.08, 4.6],
-  [2.74, 0.065, 4],
-  [3.43, 0.05, 3.4],
-  [4.18, 0.04, 2.9],
-  [5.4, 0.028, 2.3],
-  [6.79, 0.02, 1.9],
-];
-
-/**
- * The merge gong: a soft mallet thud, a long low boom with a slow beat, inharmonic partials and a shimmer that swells
- * in after the hit and rings for ~6 s. The loudest sound in the office (its peaks add up to under 1, and the
- * compressor catches the rest). Non-positional, so it carries across the floor. At most one a second. `level` (0-1)
- * plays it quieter (the time-lapse's merges).
- */
-export function gong(level = 1) {
-  if (micOpen || performance.now() - lastGong < 1000) return; // never into the 🎙
-  lastGong = performance.now();
-  const o = { name: 'gong', group: 'alerts' } as const;
-  const k = Math.max(0, Math.min(1, level));
-  // the padded mallet: a low thud and a dull puff, no click
-  tone({ ...o, freq: 150, to: 62, dur: 0.35, peak: 0.12 * k, attack: 0.004 });
-  noise({ ...o, dur: 0.14, peak: 0.07 * k, filter: 'lowpass', freq: 900, to: 180, attack: 0.003 });
-  // the boom: the fundamental (a triangle, so small speakers still hear its overtones) and a near twin that beats with it
-  tone({ ...o, freq: GONG_F0, type: 'triangle', dur: 6.5, peak: 0.2 * k, attack: 0.02 });
-  tone({ ...o, freq: GONG_F0 * 1.008, dur: 6, peak: 0.08 * k, attack: 0.04 });
-  for (const [ratio, peak, dur] of GONG_PARTIALS) tone({ ...o, freq: GONG_F0 * ratio, dur, peak: peak * k, attack: 0.015 });
-  // the shimmer: bright partials and a hiss that bloom in after the hit, the way a struck gong swells
-  tone({ ...o, freq: GONG_F0 * 8.9, type: 'triangle', at: 0.05, dur: 4, peak: 0.016 * k, attack: 0.9 });
-  tone({ ...o, freq: GONG_F0 * 11.7, at: 0.05, dur: 3.5, peak: 0.012 * k, attack: 1.1 });
-  noise({ ...o, at: 0.05, dur: 4.5, peak: 0.028 * k, filter: 'bandpass', freq: 1800, to: 3200, q: 1.5, attack: 1.2 });
-}
-
 let lastAlarm = -Infinity;
 const ALARM_GAP_MS = 30_000;
 
@@ -623,32 +516,6 @@ export function alarm() {
     tone({ ...o, freq: 523.3, at: at + 0.38, dur: 0.9 });
   }
 }
-
-// ---------- the kitchenette fridge (world/KitchenFridge.tsx) ----------
-
-/** The fridge door coming open: the seal letting go (a soft suck and pop), then the bottles in the door clinking. */
-export function fridgeOpen(pos: Vec3) {
-  const o = { name: 'fridge:open', group: 'toys', pos } as const;
-  noise({ ...o, dur: 0.12, peak: 0.06, filter: 'lowpass', freq: 700, to: 2200, attack: 0.01 });
-  tone({ ...o, freq: 170, to: 330, dur: 0.07, peak: 0.05, attack: 0.004 });
-  tone({ ...o, freq: 3100, type: 'triangle', at: 0.13, dur: 0.05, peak: 0.012, attack: 0.002 });
-  tone({ ...o, freq: 3500, type: 'triangle', at: 0.19, dur: 0.05, peak: 0.009, attack: 0.002 });
-}
-
-/** The fridge door shutting: a soft, padded thunk. */
-export function fridgeClose(pos: Vec3) {
-  const o = { name: 'fridge:close', group: 'toys', pos } as const;
-  tone({ ...o, freq: 95, to: 58, dur: 0.16, peak: 0.08, attack: 0.004 });
-  noise({ ...o, dur: 0.1, peak: 0.05, filter: 'lowpass', freq: 420, attack: 0.003 });
-  tone({ ...o, freq: 2600, type: 'triangle', at: 0.05, dur: 0.04, peak: 0.008, attack: 0.002 });
-}
-
-/** The fridge left open: its three thin "close me" beeps. */
-export function fridgeBeep(pos: Vec3) {
-  for (const at of [0, 0.17, 0.34]) tone({ name: 'fridge:beep', group: 'toys', pos, freq: 2093, type: 'triangle', at, dur: 0.09, peak: 0.035, attack: 0.005 });
-}
-
-// ---------- event cues ----------
 
 export type Cue = 'error' | 'qaFailed' | 'ready' | 'merged' | 'welcome';
 

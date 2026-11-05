@@ -1,11 +1,8 @@
-// Settings → Accessibility: captions, colour-blind-safe status, motion comfort, UI scale and readability, and how to
-// use the office by keyboard. Everything is saved in this browser (a11y.ts) and applies at once. In pocket mode the
-// 3D-only parts (motion, the field of view) are left out.
+// Settings → Accessibility: captions, colour-blind-safe status, UI scale and readability. Everything is saved in this
+// browser (a11y.ts) and applies at once.
 import { useId, type ReactNode } from 'react';
-import { useStore } from '../store';
-import { Key } from './Key';
 import { resetA11y, setA11y, useA11y } from './a11y';
-import { DEFAULT_A11Y, LIMITS, reducesMotion, showsShapes, type A11yPrefs, type ReduceMotion } from './a11yPrefs';
+import { DEFAULT_A11Y, LIMITS, showsShapes, type A11yPrefs } from './a11yPrefs';
 import { KIND_ICON, KIND_WORD, kindStrong, PALETTE_LABELS, PALETTES, STATUS_KINDS, type Palette } from './statusLook';
 
 function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes' | 'headBob' | 'cameraShake' | 'centerDot' | 'readableFont' | 'highContrast'; children: ReactNode; hint?: string; disabled?: boolean }) {
@@ -60,12 +57,8 @@ function Swatches({ palette, shapes }: { palette: Palette; shapes: boolean }) {
   );
 }
 
-const MOTION_LABELS: Record<ReduceMotion, string> = { system: 'Follow my system setting', on: 'Always reduce motion', off: 'Full motion' };
-
-export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) {
+export function AccessibilitySettings() {
   const prefs = useA11y((s) => s.prefs);
-  const systemReduced = useA11y((s) => s.systemReduced);
-  const openOverlay = useStore((s) => s.openOverlay);
   const name = useId();
   const shapes = showsShapes(prefs);
   const set = (p: Partial<A11yPrefs>) => setA11y(p);
@@ -73,13 +66,13 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
     <>
       <section className="card a11y-card" aria-labelledby={`${name}-cap`}>
         <h3 id={`${name}-cap`}>💬 Captions</h3>
-        <Toggle k="captions" hint="The CEO's messages written out as they're read aloud, and short captions for important sounds (the gong, a merge cheer, alarms, the jukebox) with an arrow towards where they came from.">
+        <Toggle k="captions" hint="The CEO's messages written out as they're read aloud, and short captions for important sounds (a merge chime, alarms).">
           Show captions
         </Toggle>
         <Slider k="captionSize" label="Caption size" unit="%" />
         <Slider k="captionBg" label="Caption background" unit="%" />
         <div className="captions captions-preview" aria-hidden style={{ ['--caption-scale' as string]: prefs.captionSize / 100, ['--caption-bg' as string]: prefs.captionBg / 100 }}>
-          <div className="caption">[gong] ↗</div>
+          <div className="caption">[merge chime]</div>
           <div className="caption caption-speech">
             <b>CEO:</b> PR number 12 is ready to merge.
           </div>
@@ -96,38 +89,11 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
             </label>
           ))}
         </fieldset>
-        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? 'Always on with a colour-blind palette.' : 'On name tags, the whiteboard, Kanban cards, status pills and toasts.'}>
+        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? 'Always on with a colour-blind palette.' : 'On Kanban cards, status pills and toasts.'}>
           Shapes beside status colours (✓ ✕ ! ⏳)
         </Toggle>
         <Swatches palette={prefs.palette} shapes={shapes} />
       </section>
-
-      {!pocket && (
-        <section className="card a11y-card" aria-labelledby={`${name}-mot`}>
-          <h3 id={`${name}-mot`}>🌀 Motion</h3>
-          <Slider k="fov" label="Field of view" unit="°" describe={(v) => (v < 72 ? 'narrower' : v > 72 ? 'wider' : 'normal')} />
-          <Toggle k="headBob">Head bob while walking</Toggle>
-          <Toggle k="cameraShake" hint="The view tipping back when you sip a coffee, and any screen shake.">
-            Camera sway and shake
-          </Toggle>
-          <fieldset className="a11y-fieldset">
-            <legend>Reduce motion</legend>
-            {(Object.keys(MOTION_LABELS) as ReduceMotion[]).map((m) => (
-              <label key={m} className="toggle block">
-                <input type="radio" name={`${name}-motion`} checked={prefs.reduceMotion === m} onChange={() => set({ reduceMotion: m })} /> {MOTION_LABELS[m]}
-                {m === 'system' && <span className="muted small">(your system {systemReduced ? 'asks for less motion' : "doesn't ask for less motion"})</span>}
-              </label>
-            ))}
-            <p className="muted small">
-              Reduced motion: confetti bursts become a glow, the elevator doors cut to a fade, and panels, toasts and badges appear without moving.{' '}
-              {reducesMotion(prefs.reduceMotion, systemReduced) ? 'On now.' : 'Off now.'}
-            </p>
-          </fieldset>
-          <Toggle k="centerDot" hint="A dot fixed in the middle of the view, which helps some people with motion sickness.">
-            Centre dot
-          </Toggle>
-        </section>
-      )}
 
       <section className="card a11y-card" aria-labelledby={`${name}-read`}>
         <h3 id={`${name}-read`}>🔎 Size and readability</h3>
@@ -140,22 +106,6 @@ export function AccessibilitySettings({ pocket = false }: { pocket?: boolean }) 
           High-contrast panels
         </Toggle>
       </section>
-
-      {!pocket && (
-        <section className="card a11y-card" aria-labelledby={`${name}-kb`}>
-          <h3 id={`${name}-kb`}>⌨️ Keyboard and screen readers</h3>
-          <p className="small">
-            <Key action="phone" /> opens your phone from anywhere: its <b>Company</b> tab opens the console, this floor's Kanban, the floor list, help and these settings. <Key action="help" /> opens help. In any panel,{' '}
-            <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> move between controls, <kbd>Enter</kbd> or <kbd>Space</kbd> uses one and <kbd>Esc</kbd> closes it; focus goes back where it was.
-            Screen readers hear the CEO's messages and alarms as they happen.
-          </p>
-          <div className="row wrap">
-            <button className="btn btn-small" onClick={() => openOverlay({ kind: 'floorList' })}>
-              👥 List view of this floor
-            </button>
-          </div>
-        </section>
-      )}
 
       <div className="row">
         <button className="btn btn-ghost btn-small" onClick={resetA11y}>

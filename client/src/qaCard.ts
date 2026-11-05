@@ -56,7 +56,7 @@ export function elapsedLabel(ms: number): string {
 }
 
 /**
- * What a card out for testing says on the 3D whiteboard: who has it (`who`), and its round and how long the test has
+ * What a card out for testing says on the board: who has it (`who`), and its round and how long the test has
  * run (`meta`, longest wording first, so the board can use the first that fits). `since` is when the test started (the
  * QA record's updatedAt: nothing changes it while a test runs); without a usable one no time is shown.
  */

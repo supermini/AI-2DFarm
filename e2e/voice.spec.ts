@@ -1,9 +1,9 @@
 import { type Page } from '@playwright/test';
 import { CEO_ID } from '../shared/types';
-import { enterOffice, expect, test } from './helpers';
+import { expect, openDashboard, test } from './helpers';
 
-// Messages read aloud (docs/voice.md), with the demo's fake ElevenLabs: a CEO reply is spoken without opening the
-// phone, the voice slider and M (mute) apply, two messages play one after the other, and a reload stays silent.
+// Messages read aloud (docs/voice.md), with the demo's fake ElevenLabs: a CEO reply is spoken away from the chat, the
+// saved voice level and mute apply, two messages play one after the other, and a reload stays silent.
 
 interface Spoken {
   id: number;
@@ -57,8 +57,15 @@ async function newReplies(page: Page, before: number[], n: number): Promise<numb
   return ids;
 }
 
-test("a CEO reply is read aloud without opening the phone, and the voice slider and M apply", async ({ page }) => {
-  await enterOffice(page);
+/** Reloads the dashboard with these sound settings saved in this browser. */
+async function withAudio(page: Page, prefs: Record<string, unknown>) {
+  await page.evaluate((p) => localStorage.setItem('cubefarm:audio', JSON.stringify(p)), prefs);
+  await page.reload();
+  await page.locator('.pk-title').click();
+}
+
+test('a CEO reply is read aloud away from the chat, and the saved voice level and mute apply', async ({ page }) => {
+  await openDashboard(page, '/#/metrics');
 
   let before = await ceoIds(page);
   await textCeo(page, 'How is it going?');
@@ -67,34 +74,26 @@ test("a CEO reply is read aloud without opening the phone, and the voice slider 
   expect(rec.provider).toBe('elevenlabs');
   expect(rec.end! - rec.start).toBeGreaterThan(100); // the demo's chime lasts at least 0.4 s
   expect(rec.volume).toBeGreaterThan(0);
-  await expect(page.locator('.phone-overlay')).toHaveCount(0);
 
-  // The Voice slider: half way is a quarter of the gain (slider levels are squared).
-  await page.keyboard.press('h');
-  const slider = page.getByRole('slider', { name: 'Voice volume' });
-  await expect(slider).toBeVisible();
-  await slider.fill('50');
-  await page.keyboard.press('Escape');
+  // Half way is a quarter of the gain (slider levels are squared).
+  await withAudio(page, { voice: 50 });
   before = await ceoIds(page);
-  await textCeo(page, 'And the voice slider?');
+  await textCeo(page, 'And the voice level?');
   const [second] = await newReplies(page, before, 1);
   const [quieter] = await heard(page, [second]);
   expect(quieter.volume).toBeCloseTo(rec.volume / 4, 5);
 
-  // M mutes the voice too.
-  await page.keyboard.press('m');
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('cubefarm:audio') ?? '{}').muted)).toBe(true);
+  await withAudio(page, { muted: true });
   before = await ceoIds(page);
   await textCeo(page, 'Can you hear me now?');
   const [third] = await newReplies(page, before, 1);
   const [muted] = await heard(page, [third]);
   expect(muted.volume).toBe(0);
-  await page.keyboard.press('m');
   await page.evaluate(() => localStorage.removeItem('cubefarm:audio'));
 });
 
 test('two quick messages play one after the other, and a reload reads nothing again', async ({ page }) => {
-  await enterOffice(page);
+  await openDashboard(page, '/#/metrics');
   const before = await ceoIds(page);
   // The first starts a CEO session; the second reaches it while it works and gets its own reply (queued texts would
   // be merged into one job).
@@ -106,8 +105,8 @@ test('two quick messages play one after the other, and a reload reads nothing ag
   expect([a.id, b.id]).toEqual([...ids].sort((x, y) => x - y));
   expect(b.start).toBeGreaterThanOrEqual(a.end!);
 
-  // enterOffice loads the page afresh: a reload first would abort the toys' chunks the old page was still fetching.
-  await enterOffice(page);
+  await page.reload();
+  await page.locator('.pk-title').click();
   await page.waitForTimeout(2000); // long enough for a replayed message to start
   expect(await spoken(page)).toEqual([]);
 });
@@ -118,8 +117,8 @@ test('with two office tabs open, each message is read in only one of them', asyn
     (url) => !url.href.startsWith(baseURL!) && !url.protocol.startsWith('data'),
     (route) => route.fulfill({ status: 200, body: '' }),
   );
-  await enterOffice(page);
-  await enterOffice(other);
+  await openDashboard(page, '/#/metrics');
+  await openDashboard(other, '/#/metrics');
   const before = await ceoIds(page);
   await textCeo(page, 'Who answers?');
   const [id] = await newReplies(page, before, 1);

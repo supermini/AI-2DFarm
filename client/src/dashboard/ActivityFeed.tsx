@@ -1,5 +1,5 @@
 // The activity ticker in the shell's top bar: the latest line as a chip, and the recent ones in a small list under it.
-// The lines are the `ticker` events the store keeps (oldest first, across every floor), the same ones the 3D lobby shows.
+// The lines are the `ticker` events the store keeps (oldest first, across every floor).
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import type { TickerItem } from '../../../shared/types';

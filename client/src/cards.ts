@@ -1,6 +1,5 @@
-// Whiteboard cards, the geometry-free side: a card's column, what it reads like, whether it may be peeled off the
-// board, where it is now and the first lines of its body. The 3D board (world/whiteboard.ts) and the HTML card view
-// (ui/CardView.tsx) both use it; nothing here knows about the board's size or drawing.
+// Board cards: a card's column, what it reads like, whether it may be handed to an agent, where it is now and the
+// first lines of its body, for the card view (ui/CardView.tsx).
 
 import type { KanbanCard, KanbanColumns } from './store';
 

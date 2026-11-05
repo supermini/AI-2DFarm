@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
 import { CEO_ID, type RepoView } from '../../../shared/types';
-import { Key } from './Key';
 import { ProjectPicker } from './ProjectPicker';
 
 // First run: who you are, the company, your CEO and your first project. Every field has a default, so
@@ -18,7 +17,7 @@ const pickOther = <T,>(list: T[], current: T) => {
   return rest[Math.floor(Math.random() * rest.length)];
 };
 
-/** A little portrait of the CEO in their suit, drawn to match the 3D office. */
+/** A little portrait of the CEO in their suit. */
 function CeoPortrait({ color, look }: { color: string; look: 'feminine' | 'masculine' }) {
   return (
     <svg viewBox="0 0 120 120" className="ceo-portrait" aria-hidden="true">
@@ -36,15 +35,13 @@ function CeoPortrait({ color, look }: { color: string; look: 'feminine' | 'mascu
   );
 }
 
-/** `onFinish` runs when the office opens (the 3D office uses it to show the player's look); without 3D, leave it out. */
-export function SetupWizard({ onFinish }: { onFinish?: () => void }) {
+export function SetupWizard() {
   const user = useStore((s) => s.user);
   const demo = useStore((s) => s.demo);
   const ghReady = useStore((s) => s.ghReady);
   const ghError = useStore((s) => s.ghError);
   const ceoAgent = useStore((s) => s.agents[CEO_ID]);
   const maxAgents = useStore((s) => s.settings.maxAgents);
-  const start = useStore((s) => s.start);
 
   const [step, setStep] = useState(0);
   const [managerName, setManagerName] = useState('');
@@ -65,9 +62,7 @@ export function SetupWizard({ onFinish }: { onFinish?: () => void }) {
     setBusy(true);
     try {
       await save();
-      await api.updateSettings({ setupDone: true, tutorialStep: 0 });
-      start();
-      onFinish?.();
+      await api.updateSettings({ setupDone: true });
     } catch {
       setBusy(false); // api() already toasted
     }
@@ -103,7 +98,7 @@ export function SetupWizard({ onFinish }: { onFinish?: () => void }) {
             <ul className="start-list">
               <li>🏢 Every project gets its own floor, with a team of coding agents building and testing its GitHub issues.</li>
               <li>🧠 A CEO studies each project, plans the work you ask for and sizes each team. You approve every new agent.</li>
-              <li>📱 Your phone keeps you in the loop from anywhere in the building.</li>
+              <li>📱 The dashboard works on your phone too.</li>
             </ul>
             {!ghReady && ghError && <div className="term-error small">⚠️ {ghError}</div>}
             <button className="btn btn-big" onClick={() => setStep(1)}>
@@ -219,12 +214,7 @@ export function SetupWizard({ onFinish }: { onFinish?: () => void }) {
                 🧠 {ceo}{project ? ` is studying ${project.fullName.split('/')[1]}` : ' is waiting for your first project'}.{' '}
                 {scaling === 'approve' ? 'Team changes wait for your OK.' : `Team changes up to ${maxAgents} agents per floor go through on their own.`}
               </li>
-              <li>
-                📱 Press <Key action="phone" /> anywhere for your phone: chat with {ceo}, approve team changes, and see every project at a glance.
-              </li>
-              <li>
-                🧭 A short tour starts when you walk in. Press <Key action="help" /> any time for help.
-              </li>
+              <li>🧠 The CEO role is where you chat with {ceo} and approve team changes; the others show the board, reviews and metrics.</li>
             </ul>
             <button className="btn btn-big" onClick={finish} disabled={busy}>
               {busy ? 'Opening the doors…' : 'Enter the office'}
