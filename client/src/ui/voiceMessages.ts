@@ -10,8 +10,7 @@ import { useStore } from '../store';
 import { sliderGain } from './audioPrefs';
 import { speechClip, speechEnded, speechStarted, speechWord } from './captions';
 import { replyEnded } from './mic';
-import { holdMusicDuck } from './music';
-import { audio, chirp, duckOthers, getAudioPrefs, groupOutput, subscribeAudio } from './sfx';
+import { audio, chirp, duckOthers, getAudioPrefs, groupOutput, holdMusicDuck, subscribeAudio } from './sfx';
 import { wonVoice } from './voiceClaim';
 import { enqueue, nextUp, type Queued, type ReplayKind } from './voiceQueue';
 

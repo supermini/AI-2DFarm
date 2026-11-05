@@ -5,7 +5,8 @@
 // window.__swarmTyping (like __swarmSfx, which a busy floor would otherwise flood), even while audio is locked or
 // unavailable, with where its panner really was (`from`).
 
-import { audio, createPanner, groupOutput, occlusionAt, recordSfx, setPannerPosition, type SfxRecord, type Vec3 } from './sfx';
+import { audio, groupOutput, recordSfx, type SfxRecord, type Vec3 } from './sfx';
+import { createPanner, occlusionAt, setPannerPosition } from './sfxSpatial';
 import { KEYBOARDS, MOUSE_CLICK, WHEEL_NOTCH, renderKey, type KeySound } from './keyboards';
 import { MAX_DISTANCE } from './sfxMix';
 

@@ -7,7 +7,8 @@
 // and ducking under a message read aloud.
 
 import { MAX_SPEAKERS, type BabbleNote, type BabbleVoice, type Onset } from './babbleRules';
-import { audio, createPanner, groupOutput, occlusionAt, recordSfx, setPannerPosition, type Vec3 } from './sfx';
+import { audio, groupOutput, recordSfx, type Vec3 } from './sfx';
+import { createPanner, occlusionAt, setPannerPosition } from './sfxSpatial';
 
 /** A line's peak before distance: soft, well under the merge cue (its pop alone peaks at 0.16) and the gong. */
 export const BABBLE_PEAK = 0.05;

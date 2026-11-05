@@ -1,7 +1,6 @@
 // The voice settings' previews and tests: one at a time, at the master volume, and following M (mute) while they play.
-// The jukebox ducks while a voice speaks.
-import { holdMusicDuck } from './music';
-import { getAudioPrefs, subscribeAudio } from './sfx';
+// The jukebox ducks while a voice speaks (when the 3D office has one: sfx.ts's holdMusicDuck).
+import { getAudioPrefs, holdMusicDuck, subscribeAudio } from './sfx';
 import { playbackVolume } from './voicePicker';
 
 let stopCurrent: (() => void) | null = null;

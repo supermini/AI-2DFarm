@@ -7,11 +7,10 @@ import { create } from 'zustand';
 import { CEO_ID } from '../../../shared/types';
 import { needsManager } from '../qaCard';
 import { useStore } from '../store';
-import { GONG } from '../world/layout';
 import { getA11y } from './a11y';
 import { announce } from './announce';
 import { admitCaption, arrowFor, arrowForPan, captionFor, captionMs, estimateSpeechMs, newCaptionGate, spokenChars, withArrow, wordEnd, type CaptionPriority } from './captionRules';
-import { listenerAt, listenerFacing, onSoundRecorded, type Vec3 } from './sfx';
+import { onSoundRecorded, spatialSide, type Spatial, type Vec3 } from './sfx';
 
 export interface CaptionLine {
   id: number;
@@ -65,21 +64,14 @@ function addLine(text: string, priority: CaptionPriority) {
 const gate = newCaptionGate();
 
 /** The arrow from the listener towards `p`, on the ground plane (looking up or down doesn't turn it). */
-function arrowTo(p: Vec3): string {
-  const e = listenerAt();
-  const { fwd } = listenerFacing();
+function arrowTo(p: Vec3, s: Spatial): string {
+  const { at: e, fwd } = s.ears();
   const len = Math.hypot(fwd.x, fwd.z) || 1;
   const fx = fwd.x / len;
   const fz = fwd.z / len;
   const dx = p.x - e.x;
   const dz = p.z - e.z;
   return arrowFor(dx * -fz + dz * fx, dx * fx + dz * fz);
-}
-
-/** Where a sound that plays everywhere comes from, for its arrow: the gong hangs by the whiteboard. */
-function anchorOf(name: string): Vec3 | null {
-  if (name === 'gong' && useStore.getState().floor !== 0) return { x: GONG.x, y: GONG.y, z: GONG.z };
-  return null;
 }
 
 /** What an alarm is about: mission control's newest alarm, else the first PR waiting on the manager. */
@@ -93,11 +85,7 @@ function alarmDetail(): string | undefined {
 
 async function detailOf(name: string): Promise<string | undefined> {
   if (name.includes('alarm')) return alarmDetail();
-  if (name.startsWith('jukebox:')) {
-    const { SONGS } = await import('../world/jukeboxSongs');
-    return SONGS.find((s) => `jukebox:${s.id}` === name)?.title;
-  }
-  return undefined;
+  return spatialSide()?.detailOf(name);
 }
 
 /** Captions a sound by its name (as sfx.ts records it), from `pos` when it has one, else by its stereo `pan`. */
@@ -108,8 +96,10 @@ export function captionSound(name: string, pos: Vec3 | null = null, pan = 0) {
   const alarm = info.key === 'alarm';
   if (!on && !alarm) return;
   if (!admitCaption(gate, info, performance.now())) return;
-  const at = pos ?? anchorOf(name);
-  const arrow = at ? arrowTo(at) : arrowForPan(pan);
+  // Only the 3D office has a listener to point from; without it (pocket mode) a placed sound gets no arrow.
+  const s = spatialSide();
+  const at = s ? (pos ?? s.anchorOf(name)) : null;
+  const arrow = at && s ? arrowTo(at, s) : arrowForPan(pan);
   void detailOf(name).then((detail) => {
     const text = captionFor(name, detail)?.text ?? info.text;
     if (alarm) announce(text.replace(/^\[|\]$/g, ''), 'assertive');

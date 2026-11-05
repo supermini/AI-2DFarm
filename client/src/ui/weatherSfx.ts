@@ -8,7 +8,8 @@
 import { doorOpen } from '../world/doors';
 import { SIDES, type Side } from '../world/layout';
 import { outsideHearing, type OutsideHearing } from './outsideMix';
-import { groupOutput, listenerAt, recordSfx } from './sfx';
+import { groupOutput, recordSfx } from './sfx';
+import { listenerAt } from './sfxSpatial';
 import { patterSamples, rainHeard, thunderHeard, weatherSoundLayers } from './weatherMix';
 
 type FloorKind = 'office' | 'lobby' | 'roof';

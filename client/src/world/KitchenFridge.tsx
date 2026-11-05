@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useRenderPaused } from '../perf';
 import { useStore } from '../store';
-import { fridgeHum, listenerAt, type FridgeHum } from '../ui/sfx';
+import { fridgeHum, listenerAt, type FridgeHum } from '../ui/sfxSpatial';
 import { Slice } from './food';
 import { SNACK_IDS, grabLabel, swingTo, type SnackId } from './fridge';
 import { doorOpen, fridgeAt, fridgeVersion, lunchText, mountFridge, setLunchLabel, stockOf, subscribeFridge, tickFridge } from './fridgeState';

@@ -10,7 +10,8 @@ import type { BodyState } from '../world/body';
 import { ROOF, surfaceAt } from '../world/layout';
 import { footstepAt, scuffAt } from './footsteps';
 import { HURRYING, hearPerson, newHearing, type Crowd, type Hearing } from './peopleSoundRules';
-import { getAudioPrefs, listenerAt, noise, recordSfx, tone, type Vec3 } from './sfx';
+import { getAudioPrefs, noise, recordSfx, tone, type Vec3 } from './sfx';
+import { listenerAt } from './sfxSpatial';
 
 // ---------- the voices ----------
 

@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { setListener } from '../ui/sfx';
+import { setListener } from '../ui/sfxSpatial';
 import { earAtHome } from './camera/rig';
 import { EYE_HEIGHT } from './layout';
 

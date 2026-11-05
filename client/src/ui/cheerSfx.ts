@@ -9,7 +9,8 @@ import { useStore } from '../store';
 import { CELEBRATE_MS } from '../world/gongRules';
 import { gongState } from '../world/gongState';
 import { CHEER_LEAD, CHEER_VOICES, crowdLevel, mayCheer, planCheer, stagger, type CheerVoice, type CheerWord } from './cheerRules';
-import { audio, createPanner, groupOutput, listenerAt, occlusionAt, recordSfx, setPannerPosition, type SfxRecord, type Vec3 } from './sfx';
+import { audio, groupOutput, recordSfx, type SfxRecord, type Vec3 } from './sfx';
+import { createPanner, listenerAt, occlusionAt, setPannerPosition } from './sfxSpatial';
 import { distance } from './sfxMix';
 
 /** One voice's peak, before distance: well under the gong (its whole boom peaks around 0.5). */
