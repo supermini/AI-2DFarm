@@ -1,5 +1,5 @@
 // The captions strip at the bottom of the screen (captions.ts decides what's on it), and the visually hidden live
-// regions screen readers hear announcements through (announce.ts). Both are on in the 3D office and in pocket mode.
+// regions screen readers hear announcements through (announce.ts).
 import { useEffect, useState } from 'react';
 import { useA11y } from './a11y';
 import { useAnnouncer } from './announce';

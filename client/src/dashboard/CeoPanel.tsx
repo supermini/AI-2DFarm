@@ -1,7 +1,7 @@
 // The CEO role's screen: on the left the CEO (status, job, queue, planning buttons) over the chat; on the right what
 // waits on the manager (approvals, interviews, PRs the CEO is triaging), the issue form and the CEO's own settings.
 // Below 1024px the two columns are the chat and approvals panes (the route's `pane`). Everything is an existing
-// component or REST call; the 3D office's lobby interview opens here as a dialog.
+// component or REST call; a team change's interview opens here as a dialog.
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { api } from '../api';
 import { agentsOnRepo, pendingRequests, useStore } from '../store';
@@ -135,7 +135,7 @@ function CeoCard() {
 
 // ---------- the right column ----------
 
-/** Pending team changes, each opening the interview dialog (the lobby's setup sheet, outside the 3D office). */
+/** Pending team changes, each opening the interview dialog (its setup sheet). */
 function Interviews() {
   const requests = useStore((s) => s.requests);
   const demo = useStore((s) => s.demo);

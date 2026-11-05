@@ -3,17 +3,13 @@ import { api } from '../api';
 import { useStore } from '../store';
 import { CEO_ID } from '../../../shared/types';
 import { Markdown } from './Markdown';
-import { closeOverlay } from './Panel';
 import { HireSetupFields, cliLabel, hireCli, hireOverrides, setupOf, type HireSetup } from './Phone';
 import { CLAUDE_MODELS, effectiveModel } from '../../../shared/models';
 
-// A team change face to face (#227), as an office document: a new agent waiting in the lobby (E on them, world/
-// Candidates.tsx), set up here before they're created (name, coding agent, model, effort), or the CEO's let-go note in
-// the envelope on someone's desk. Hire / Decline (Let go / Keep) are the same decisions as the phone's and the
-// console's, with a note the CEO reads. Deciding closes it, so the person's reaction plays out in front of you.
+// A team change face to face (#227), as an office document: a new agent waiting in the lobby, set up here before they're created (name, coding agent, model, effort), or the CEO's let-go note in
+// the envelope on someone's desk. Hire / Decline (Let go / Keep), with a note the CEO reads. Deciding closes it.
 
-/** `onClose` replaces closing the 3D office's overlay (the dashboard opens this as a dialog of its own). */
-export function Interview({ requestId, onClose = closeOverlay }: { requestId: string; onClose?: () => void }) {
+export function Interview({ requestId, onClose }: { requestId: string; onClose: () => void }) {
   const req = useStore((s) => s.requests.find((r) => r.id === requestId));
   const repo = useStore((s) => (req ? s.repos.find((r) => r.id === req.repoId) : undefined));
   const settings = useStore((s) => s.settings);

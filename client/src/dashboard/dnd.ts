@@ -1,8 +1,7 @@
 // The 2D dashboard's drag-and-drop decision, pure: what dropping a Kanban card onto an agent should do. The developer
 // panel (dashboard/KanbanBoard.tsx) calls dropAction and runs the result — api.assign, api.sendToQa, or a confirm
-// dialog — so a drag does exactly what the manager's console would. Nothing here touches React or the DOM, and it never
-// imports world/, so the 2D dashboard keeps its own module graph (issue #5's guard). The rules match the 3D desk
-// (world/whiteboard.ts dropTarget) and the pocket's assignChoices rather than inventing new ones.
+// dialog — so a drag does exactly what the manager's console would. Nothing here touches React or the DOM. The rules match
+// the pocket's assignChoices rather than inventing new ones.
 
 import { blockers } from '../../../shared/issues';
 import type { IssueInfo } from '../../../shared/types';
@@ -29,7 +28,7 @@ export type DropAction =
   | { kind: 'blocked'; waits: number[] }
   | { kind: 'none'; reason: string };
 
-/** A short description of what a busy agent is on, as the 3D desk's warning says: "testing PR #7", "working on #12". */
+/** A short description of what a busy agent is on, in the warning's words: "testing PR #7", "working on #12". */
 function doing(a: Pick<Agent, 'task' | 'issueNumber' | 'prNumber'>): string {
   if (a.task === 'qa' && a.prNumber != null) return `testing PR #${a.prNumber}`;
   if (a.task === 'fix' && a.prNumber != null) return `fixing PR #${a.prNumber}`;
@@ -65,7 +64,7 @@ export function dropAction(card: KanbanCard, column: keyof KanbanColumns, agent:
 
   const busy = agent.status === 'preparing' || agent.status === 'working';
 
-  // Backlog: an issue to build. Busy first (as the 3D desk's warning does), then open blockers, then assign.
+  // Backlog: an issue to build. Busy first, then open blockers, then assign.
   if (column === 'backlog') {
     if (busy) return { kind: 'busy', agentId: agent.id, doing: doing(agent) };
     const issue = ctx.issues.find((i) => i.number === card.number);

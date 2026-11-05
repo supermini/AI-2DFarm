@@ -1,5 +1,5 @@
-// The accessibility settings in this browser (a11yPrefs.ts has the rules): a small store the settings page, the HUD
-// and the 3D view read, and the page-wide part applied to <html> as data attributes and CSS variables (UI scale,
+// The accessibility settings in this browser (a11yPrefs.ts has the rules): a small store the settings page reads,
+// and the page-wide part applied to <html> as data attributes and CSS variables (UI scale,
 // readable font, high contrast, status palette and shapes, reduced motion). Per-frame code calls the plain getters.
 // window.__swarmA11y shows the settings and what they come to, and set() changes them, for QA and e2e.
 

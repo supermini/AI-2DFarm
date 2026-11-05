@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { defaultControls, keyLabel, normaliseControls, PAD_SENSITIVITY_MAX, PAD_SENSITIVITY_MIN, rebind, unbind, type ActionId, type Controls, type Rebound } from './keymap';
 
-// The player's controls (Help → Controls): key bindings and the gamepad's sensitivity, saved in this browser and read
-// back through normaliseControls (keymap.ts), so a corrupt value falls back to the defaults. The mouse settings live in
-// world/look.ts. Every keyboard shortcut in the office asks here which keys are its.
+// The keyboard's controls: key bindings saved in this browser and read back through normaliseControls (keymap.ts), so a
+// corrupt value falls back to the defaults. Every keyboard shortcut asks here which keys are its.
 
 const STORAGE_KEY = 'cubefarm:controls';
 

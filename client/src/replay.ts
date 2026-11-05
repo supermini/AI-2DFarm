@@ -1,6 +1,6 @@
 // The time-lapse (docs/how-it-works.md, "Time-lapse"): plays the office's journal back through the store's own
-// apply(), so the 3D office, the whiteboard, the gong and confetti, the sky and the clocks show the recorded day
-// instead of the live one. While it plays, live events are dropped (net.ts) and live actions refused (api.ts and the
+// apply(), so the dashboard shows the recorded day instead of the live one.
+// While it plays, live events are dropped (net.ts) and live actions refused (api.ts and the
 // store's openOverlay); stopping asks the server for a fresh snapshot. Also keeps "since I was last here" for this
 // browser. The pure rules are in replayClock.ts and shared/journal.ts. QA: window.__swarmReplay.
 import { create } from 'zustand';

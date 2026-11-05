@@ -446,7 +446,6 @@ export interface KanbanCard {
   tone?: CardTone;
   prNumber?: number;
   qa?: QaView;
-  /** The 3D board draws it as an outline: its sticky is off the board, with the agent testing it (StickyNotes.tsx). */
   ghost?: boolean;
 }
 

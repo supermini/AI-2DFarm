@@ -1,5 +1,5 @@
-// What an agent's current tool reads like in a status line ("Editing", "Browsing"). Shared by the 3D office's laptop
-// screens, the terminal panel and pocket mode; no 3D imports.
+// What an agent's current tool reads like in a status line ("Editing", "Browsing"). Shared by the terminal panel and
+// the dashboard.
 
 export function toolVerb(tool: string | null): string {
   if (!tool) return '';

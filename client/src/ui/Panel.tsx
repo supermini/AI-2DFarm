@@ -1,13 +1,9 @@
-// The office's panel (a titled card over a dimmed backdrop) and closing it. Kept apart from Overlays.tsx, which pulls
-// in the 3D world, so pocket mode can open panels without loading it. A panel is a modal dialog for the keyboard and
+// The office's panel (a titled card over a dimmed backdrop) and closing it. A panel is a modal dialog for the keyboard and
 // screen readers (dialogFocus.ts): focus moves in, stays in, and goes back when it closes.
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { useStore } from '../store';
 import { useDialogFocus } from './dialogFocus';
 
-// Closing a panel grabs the mouse again right away (world/lookLock.ts; "Grab the mouse when panels
-// close" in help turns that off), and mouse presses are swallowed for a moment so a double click on
-// ✕ or the backdrop can't act on whatever the crosshair lands on.
 export function closeOverlay() {
   useStore.getState().openOverlay(null);
 }

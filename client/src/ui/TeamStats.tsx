@@ -1,5 +1,4 @@
 // The Team tab's table of everyone's career numbers (Careers, #226), and the text helpers the career card shares.
-// No world/ imports: the 2D views use it; the 3D-only career card and portrait live in CareerCard.tsx.
 import { useState } from 'react';
 import { avgFixRounds, mergesThisWeek, passRate, tenureDays, type CareerView } from '../../../shared/careers';
 import { useStore, type Agent } from '../store';

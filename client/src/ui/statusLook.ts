@@ -99,7 +99,7 @@ const STANDARD_FILL: Record<StatusName, string> = {
   failed: '#ffa8a8',
 };
 const STANDARD_STRONG: Record<StatusKind, string> = { idle: '#adb5bd', waiting: '#fab005', busy: '#339af0', ok: '#2dc653', attention: '#ffb703', bad: '#ef476f' };
-/** Kanban card backgrounds in the panel, and sticky colours on the 3D whiteboard (lighter on screen, warmer on paper). */
+/** Kanban card backgrounds in the panel, (lighter on screen, warmer on paper). */
 const STANDARD_TONE: Record<'card' | 'board', Record<CardTone, string>> = {
   card: { warn: '#fff3d6', bad: '#ffe0e6', good: '#e3fbe7' },
   board: { warn: '#ffd8a8', bad: '#ffc9c9', good: '#d8f9df' },

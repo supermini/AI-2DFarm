@@ -1,5 +1,5 @@
-// The floor as a list (FloorList.tsx), for anyone who can't use the 3D view: one row per person with their status in
-// words and its shape, the coding agent they run, and what they're doing. Pure, so the wording is tested.
+// How the dashboard names people: their status in words and its shape, the coding agent they run, and what they're
+// doing. Pure, so the wording is tested.
 
 import type { AgentCli, AgentStatus, CliView, SwarmSettings } from '../../../shared/types';
 import type { Agent } from '../store';

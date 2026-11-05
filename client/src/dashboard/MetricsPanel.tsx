@@ -13,7 +13,7 @@ const TABS: [Tab, string][] = [
   ['timelapse', '📼 Time-lapse'],
 ];
 
-/** Merges today and in the last hour, and the last 24 hours as bars (what the 3D office's mission control wall draws). */
+/** Merges today and in the last hour, and the last 24 hours as bars. */
 function Throughput() {
   const { mergedToday, mergedHour, spark } = useStore((s) => s.ops.total);
   const peak = Math.max(1, ...spark);
@@ -46,7 +46,7 @@ export function MetricsPanel() {
         ))}
       </div>
       {tab === 'ops' && <Throughput />}
-      {tab === 'ops' ? <OpsTab /> : <TimeLapseTab dashboard />}
+      {tab === 'ops' ? <OpsTab /> : <TimeLapseTab />}
     </div>
   );
 }

@@ -72,7 +72,7 @@ export function AccessibilitySettings() {
         <Slider k="captionSize" label="Caption size" unit="%" />
         <Slider k="captionBg" label="Caption background" unit="%" />
         <div className="captions captions-preview" aria-hidden style={{ ['--caption-scale' as string]: prefs.captionSize / 100, ['--caption-bg' as string]: prefs.captionBg / 100 }}>
-          <div className="caption">[gong] ↗</div>
+          <div className="caption">[merge chime]</div>
           <div className="caption caption-speech">
             <b>CEO:</b> PR number 12 is ready to merge.
           </div>

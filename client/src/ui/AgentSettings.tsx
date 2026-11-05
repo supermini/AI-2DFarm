@@ -215,7 +215,6 @@ export function PromptPreview({ agent }: { agent: Agent }) {
 
 /**
  * The ⚙️ Setup section of an agent's panel. The CEO always runs Claude Code, so they only get model and effort.
- * `lookEditor` is the look editor (ui/LookEditor.tsx, which needs the 3D preview), passed in by whoever has it.
  */
 export function AgentSetup({ agent }: { agent: Agent }) {
   const terminal = useStore((s) => s.settings.runtime === 'terminal');

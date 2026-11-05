@@ -1,5 +1,5 @@
 // An agent in the right drawer: the terminal panel (status, terminal, message box, Stop, Clear desk, assign, sign-in,
-// setup) without the 3D office's extras (no camera follow, look editor or career card). Anyone opens it with the store's
+// setup). Anyone opens it with the store's
 // `openOverlay({ kind: 'terminal', agentId })`: an agent chip, a Team row, the workers list, a tile's header.
 import { useEffect } from 'react';
 import { useStore } from '../store';
