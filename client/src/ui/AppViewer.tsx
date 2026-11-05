@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type Ref } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type Ref } from 'react';
 import { api } from '../api';
 import { qaKey, useStore } from '../store';
 import { PREVIEW_ENV_MAX_CHARS, previewEnvChars, previewEnvTooBig } from '../../../shared/previewEnv';
@@ -286,10 +286,10 @@ function PreviewStage({
 // ---------- the PR theatre: channels, compare, QA ----------
 
 /** main, then every open PR on the floor; picking a PR starts its preview. */
-function ChannelBar({ repo, channel, onPick }: { repo: RepoView; channel: Channel; onPick: (pr: Channel) => void }) {
+function ChannelBar({ repo, channel, onPick, only }: { repo: RepoView; channel: Channel; onPick: (pr: Channel) => void; only?: number | null }) {
   const prPreviews = useStore((s) => s.prPreviews);
   const qa = useStore((s) => s.qa);
-  const pulls = channelPulls(repo.pulls);
+  const pulls = channelPulls(repo.pulls).filter((p) => only == null || p.number === only);
   return (
     <div className="channels" role="tablist" aria-label="Channels">
       <button role="tab" aria-selected={channel == null} className={`channel ${channel == null ? 'channel-on' : ''}`} onClick={() => onPick(null)} title={`The floor's app on ${repo.defaultBranch}`}>
@@ -535,8 +535,29 @@ function CompareView({
 let lastCompare = false;
 let lastQa = true;
 
-/** The floor's app on the big screen, up close: main or one of its open PRs, alone or beside main. */
-export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }) {
+/** The viewer's frame: the office's modal Panel, or (`embedded`, the 2D dashboard's reviewer) a plain section of the page. */
+function ViewerFrame({ embedded, title, accent, children }: { embedded?: boolean; title: ReactNode; accent: string; children: ReactNode }) {
+  if (!embedded) {
+    return (
+      <Panel wide className="panel-app" accent={accent} title={title}>
+        {children}
+      </Panel>
+    );
+  }
+  return (
+    <section className="app-embedded" style={{ ['--accent' as string]: accent }}>
+      <h3 className="app-embedded-title">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
+/**
+ * The floor's app on the big screen, up close: main or one of its open PRs, alone or beside main. `embedded`: in a
+ * page of its own (the reviewer's App tab) instead of a panel: it stays on main and the one PR `pr`, and leaves the
+ * PR's report to the page around it.
+ */
+export function AppViewer({ repoId, pr, embedded }: { repoId: string; pr?: number | null; embedded?: boolean }) {
   const repo = useStore((s) => s.repos.find((r) => r.id === repoId));
   const prPreviews = useStore((s) => s.prPreviews);
   const qaRecords = useStore((s) => s.qa);
@@ -556,8 +577,8 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
 
   // Start with focus on the toolbar, so Esc closes the panel until the app itself is clicked.
   useEffect(() => {
-    toolbar.current?.querySelector<HTMLElement>('button')?.focus();
-  }, []);
+    if (!embedded) toolbar.current?.querySelector<HTMLElement>('button')?.focus();
+  }, [embedded]);
 
   // Away from the office's computer the apps come through the office: its preview worker goes in before they load.
   useEffect(() => {
@@ -565,7 +586,9 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
   }, []);
 
   if (!repo) {
-    return (
+    return embedded ? (
+      <p className="muted">This floor no longer exists.</p>
+    ) : (
       <Panel title="App">
         <p className="muted">This floor no longer exists.</p>
       </Panel>
@@ -598,9 +621,8 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
   const comparing = compare && prView != null;
 
   return (
-    <Panel
-      wide
-      className="panel-app"
+    <ViewerFrame
+      embedded={embedded}
       accent={repo.color}
       title={
         <span className="app-title">
@@ -616,7 +638,7 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
       }
     >
       <div ref={toolbar}>
-        <ChannelBar repo={repo} channel={channel} onPick={(n) => tuneChannel(repo.id, n)} />
+        <ChannelBar repo={repo} channel={channel} onPick={(n) => tuneChannel(repo.id, n)} only={embedded ? pr : undefined} />
         <div className="app-toolbar" role="toolbar" aria-label="App controls">
           {active ? (
             <>
@@ -657,7 +679,7 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
             </button>
           </div>
           <span className="spacer" />
-          {prView && (
+          {prView && !embedded && (
             <button
               className={`btn btn-small ${showQa ? 'btn-on' : ''}`}
               aria-pressed={showQa}
@@ -689,15 +711,20 @@ export function AppViewer({ repoId, pr }: { repoId: string; pr?: number | null }
             <PreviewStage repo={repo} preview={current} label={label} src={current.url && reachable(current.url, location)} width={width} reloads={reloads} busy={busy} onStart={() => void (channel == null ? startMain() : startPr())} />
           )}
         </div>
-        {prView && showQa && pull && <QaPanel repo={repo} pull={pull} qa={qaRecords[qaKey(repo.id, pull.number)]} />}
+        {prView && showQa && !embedded && pull && <QaPanel repo={repo} pull={pull} qa={qaRecords[qaKey(repo.id, pull.number)]} />}
       </div>
       {current.status === 'running' && (
         <p className="muted small app-foot">
-          Blank, or “refused to connect”? The app may block being framed: use <b>Open in new tab</b>. Keys typed in the app stay in the app, so <kbd>Esc</kbd> only closes this panel
-          when focus is outside it; <b>✕</b> always does.
+          Blank, or “refused to connect”? The app may block being framed: use <b>Open in new tab</b>.
+          {!embedded && (
+            <>
+              {' '}
+              Keys typed in the app stay in the app, so <kbd>Esc</kbd> only closes this panel when focus is outside it; <b>✕</b> always does.
+            </>
+          )}
           {prView && ' A PR preview stops after a while with nobody watching it, and when its PR merges or closes.'}
         </p>
       )}
-    </Panel>
+    </ViewerFrame>
   );
 }

@@ -93,3 +93,48 @@ export function reviewAgents(qa: Pick<QaView, 'devAgentId' | 'qaAgentId'> | unde
   const dev = byId(qa?.devAgentId) ?? authors.find((a) => a.prNumber === pr.number) ?? authors.find((a) => a.branch && a.branch === pr.headRefName) ?? null;
   return { dev, qa: byId(qa?.qaAgentId) };
 }
+
+// ---------- the Actions tab ----------
+
+export interface ReviewActions {
+  /** The QA button: "Send to QA" for a PR QA hasn't seen, "Retry QA" for another round (the office refuses one while it is testing or fixing). */
+  retryQa: 'Send to QA' | 'Retry QA' | null;
+  /** Hand it to a developer with QA's findings (only a failed or needs-human PR can go back). */
+  sendBack: boolean;
+  /** Merge once QA passed; Merge anyway where QA wants the manager's word. `disabled` is why it can't be pressed. */
+  merge: { label: 'Merge' | 'Merge anyway'; disabled: string | null } | null;
+  close: boolean;
+  /** Why there is little or nothing to do, when that is so. */
+  hint: string | null;
+}
+
+/** What the manager can do to a PR, from where it stands. The same offers as the Kanban board's cards, plus a retest of a passed PR. A merged PR has none. */
+export function reviewActions(item: Pick<ReviewItem, 'pr' | 'qa'>): ReviewActions {
+  const { pr, qa } = item;
+  if (pr.state !== 'OPEN') return { retryQa: null, sendBack: false, merge: null, close: false, hint: pr.state === 'MERGED' ? 'This PR has merged: there is nothing left to do here.' : 'This PR is closed.' };
+  const st = qa?.status;
+  if (st === 'testing' || st === 'fixing' || st === 'queued') {
+    const why = st === 'testing' ? 'QA is testing it now' : st === 'fixing' ? 'A developer is fixing it' : 'It is waiting for QA';
+    return { retryQa: null, sendBack: false, merge: null, close: true, hint: `${why}: more actions open up when it is done.` };
+  }
+  const merge: ReviewActions['merge'] = st === 'passed' ? { label: 'Merge', disabled: pr.isDraft ? 'It is still a draft on GitHub.' : null } : st === 'needs-human' ? { label: 'Merge anyway', disabled: null } : null;
+  return {
+    retryQa: st ? 'Retry QA' : 'Send to QA',
+    sendBack: st === 'failed' || st === 'needs-human',
+    merge,
+    close: true,
+    hint: merge ? null : st ? 'It can merge once QA passes it.' : "QA hasn't tested it yet.",
+  };
+}
+
+/** The floor's auto-merge, as it bears on this PR (null once it has merged or closed). */
+export function autoMergeNote(autoMerge: boolean, item: Pick<ReviewItem, 'pr' | 'qa'>): string | null {
+  const { pr, qa } = item;
+  if (pr.state !== 'OPEN') return null;
+  if (!autoMerge) return 'Auto-merge is off on this floor: a PR that passes QA waits for you to merge it.';
+  if (qa?.status !== 'passed') return "Auto-merge is on: this PR merges by itself once QA passes its latest commit and GitHub's checks are green.";
+  if (pr.mergeable === 'CONFLICTING') return 'Auto-merge is on, but this PR has conflicts with the base branch, so it is held.';
+  if (pr.checks === 'failing') return 'Auto-merge is on, but CI is failing, so it is held.';
+  if (pr.checks === 'pending') return 'Auto-merge is on: QA passed, waiting for the checks to finish.';
+  return 'Auto-merge is on: QA passed, so it merges on its own shortly.';
+}
