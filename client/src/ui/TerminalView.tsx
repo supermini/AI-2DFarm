@@ -32,6 +32,15 @@ function elapsed(from: number | null, to: number | null) {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
+/** What wraps the agent's title and body: the office's modal Panel by default, the 2D dashboard's drawer instead (a component, kept stable). */
+export type TerminalFrame = (p: { title: ReactNode; accent?: string; children: ReactNode }) => ReactNode;
+
+const PanelFrame: TerminalFrame = ({ title, accent, children }) => (
+  <Panel wide accent={accent} title={title}>
+    {children}
+  </Panel>
+);
+
 /**
  * One agent's panel. The 3D office passes `onFollow` (the camera trails them; the button is hidden without it) and
  * `lookEditor` (the look editor, which needs the 3D preview) and `careerCard` (the career card with its portrait; the
@@ -42,11 +51,13 @@ export function TerminalView({
   onFollow,
   lookEditor,
   careerCard,
+  frame: Frame = PanelFrame,
 }: {
   agentId: string;
   onFollow?: (agentId: string) => void;
   lookEditor?: (agent: Agent) => ReactNode;
   careerCard?: (agent: Agent) => ReactNode;
+  frame?: TerminalFrame;
 }) {
   const agent = useStore((s) => s.agents[agentId]);
   const log = useStore((s) => s.logs[agentId]) ?? [];
@@ -97,9 +108,9 @@ export function TerminalView({
 
   if (!agent || !repo) {
     return (
-      <Panel title="Terminal">
+      <Frame title="Terminal">
         <p className="muted">That agent has left the building.</p>
-      </Panel>
+      </Frame>
     );
   }
 
@@ -127,8 +138,7 @@ export function TerminalView({
   };
 
   return (
-    <Panel
-      wide
+    <Frame
       accent={agent.color}
       title={
         <div className="term-title">
@@ -360,6 +370,6 @@ export function TerminalView({
           Let go
         </button>
       </div>
-    </Panel>
+    </Frame>
   );
 }

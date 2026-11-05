@@ -17,6 +17,7 @@ import { Board, Company, type PocketTab } from '../pocket/Pocket';
 import { Approvals } from '../pocket/PocketApprovals';
 import { Team } from '../pocket/PocketTeam';
 import { Drawer } from './Drawer';
+import { TerminalGrid } from './TerminalGrid';
 import { routeFromTab, SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
@@ -104,8 +105,7 @@ export function DevScreen({ floor, view, go }: { floor: number | null; view: Dev
           </div>
         </div>
       )}
-      {/* The terminals grid is a later issue: for now the team, each agent with its terminal. */}
-      {view === 'terminals' && (floor === null || repo) && <Team focusRepo={repo?.id ?? null} />}
+      {view === 'terminals' && (floor === null || repo) && <TerminalGrid key={repo?.id ?? 'all'} repoId={repo?.id ?? null} />}
     </div>
   );
 }

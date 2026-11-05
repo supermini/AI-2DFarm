@@ -1,0 +1,144 @@
+/* The terminals grid and the agent drawer (TerminalGrid.tsx, AgentDrawer.tsx). */
+.dash-terminals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  align-items: start;
+  gap: 12px;
+  padding: 12px;
+}
+.dash-tgrid-col {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dash-tpick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.dash-tpick .pk-chip:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dash-tpick-hint {
+  margin-left: 6px;
+}
+.dash-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  vertical-align: -1px;
+}
+.dash-tgrid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-rows: max(300px, calc((100dvh - 230px) / var(--rows)));
+  gap: 10px;
+}
+.dash-tile {
+  container-type: inline-size;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  overflow: hidden;
+}
+.dash-tile-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: var(--accent);
+  border-bottom: 3px solid var(--ink);
+}
+.dash-tile-name {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.dash-tile-name:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+.dash-tile-doing {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A tile in a three-column grid is narrow: drop the task line, the avatar and Stop's word before anything is cut off */
+@container (max-width: 380px) {
+  .dash-tile-doing,
+  .dash-tile-stop,
+  .dash-tile-name .avatar {
+    display: none;
+  }
+}
+.dash-tile-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dash-tile-body .live-term {
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+.dash-tile-note {
+  margin: 0;
+  padding: 14px;
+}
+/* The workers list beside the grid, not floating over a 3D view */
+.dash-tworkers {
+  min-width: 0;
+}
+.workers.workers-embedded {
+  display: flex; /* styles.css hides the floating list on narrow screens */
+  position: static;
+  width: auto;
+  max-height: calc(100dvh - 170px);
+}
+/* The agent in the drawer: wide enough for a terminal, the panel's layout inside */
+.dash-drawer-wide {
+  width: min(720px, 100%);
+}
+.dash-agent {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.dash-agent .term-split {
+  min-height: 340px;
+}
+@media (max-width: 1024px) {
+  .dash-terminals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workers.workers-embedded {
+    max-height: 320px;
+  }
+}
+@media (max-width: 760px) {
+  .dash-terminals {
+    padding: 8px;
+  }
+  .dash-tgrid {
+    grid-auto-rows: max(300px, calc(100dvh - 330px));
+  }
+}
