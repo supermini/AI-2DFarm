@@ -1,22 +1,20 @@
 // The dashboard's screens, one per role, built from pocket mode's panels for now: the CEO (chat and approvals), the
 // developer (the board and the team), the reviewer (ReviewPanel.tsx), metrics (each
 // floor's pipeline) and settings (the manager's console sections and this device).
-import { useEffect } from 'react';
 import { useStore } from '../store';
-import { CEO_ID } from '../../../shared/types';
-import { KanbanView } from '../ui/KanbanView';
 import { NotifySettings } from '../ui/NotifySettings';
 import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
 import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
-import { Chat } from '../ui/Phone';
 import { setMode } from '../pocket/mode';
-import { Board, Company, type PocketTab } from '../pocket/Pocket';
-import { Approvals } from '../pocket/PocketApprovals';
+import { Board } from '../pocket/Pocket';
 import { Team } from '../pocket/PocketTeam';
+import { CeoPanel } from './CeoPanel';
+import { DevBoard } from './DevBoard';
+import { MetricsPanel } from './MetricsPanel';
 import { ReviewPanel } from './ReviewPanel';
-import { routeFromTab, SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
+import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
 
@@ -41,35 +39,7 @@ function Chips<T extends string>({ items, on, pick, label, className }: { items:
 // ---------- CEO ----------
 
 export function CeoScreen({ pane, go }: { pane: CeoPane; go: Go }) {
-  const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'CEO');
-  // While the chat is on screen, new CEO messages don't toast (the store reads this as the phone's chat being open).
-  useEffect(() => {
-    const s = useStore.getState();
-    s.openOverlay({ kind: 'phone', tab: 'chat' });
-    return () => {
-      if (useStore.getState().overlay?.kind === 'phone') useStore.getState().openOverlay(null);
-    };
-  }, []);
-  return (
-    <div className="dash-ceo">
-      <Chips
-        className="dash-narrow-only dash-chips-pad"
-        label="CEO"
-        items={[
-          ['chat', `💬 ${ceoName}`],
-          ['approvals', '✋ Approvals'],
-        ]}
-        on={pane}
-        pick={(p) => go({ role: 'ceo', pane: p })}
-      />
-      <section className={`dash-ceo-chat ${pane === 'chat' ? '' : 'dash-pane-off'}`} aria-label={`Chat with ${ceoName}`}>
-        <Chat autoFocus={false} />
-      </section>
-      <section className={`dash-ceo-side ${pane === 'approvals' ? '' : 'dash-pane-off'}`} aria-label="Approvals">
-        <Approvals />
-      </section>
-    </div>
-  );
+  return <CeoPanel pane={pane} go={go} />;
 }
 
 // ---------- developer ----------
@@ -85,19 +55,14 @@ export function DevScreen({ floor, view, go }: { floor: number | null; view: Dev
     <div className="dash-dev">
       <Chips className="dash-chips-pad" label="Developer view" items={views} on={view} pick={(v) => go({ role: 'dev', floor, view: v })} />
       {floor !== null && !repo && <p className="muted pk-page">There's no floor {floor}. Pick another floor above.</p>}
-      {view === 'board' && (floor === null || repo) && (
+      {view === 'board' && repo && <DevBoard key={repo.id} repo={repo} />}
+      {view === 'board' && floor === null && (
         <div className="dash-dev-split">
           <div className="dash-dev-board">
-            {repo ? (
-              <div className="pk-page">
-                <KanbanView key={repo.id} repoId={repo.id} embedded />
-              </div>
-            ) : (
-              <Board repoId={null} pick={(id) => go({ role: 'dev', floor: repos.find((r) => r.id === id)?.floor ?? null, view })} />
-            )}
+            <Board repoId={null} pick={(id) => go({ role: 'dev', floor: repos.find((r) => r.id === id)?.floor ?? null, view })} />
           </div>
           <div className="dash-dev-team">
-            <Team focusRepo={repo?.id ?? null} />
+            <Team focusRepo={null} />
           </div>
         </div>
       )}
@@ -115,13 +80,8 @@ export function ReviewScreen({ floor, pr, go }: { floor: number | null; pr: numb
 
 // ---------- metrics ----------
 
-export function MetricsScreen({ go }: { go: Go }) {
-  const repos = useStore((s) => s.repos);
-  const fromPocket = (tab: PocketTab, repoId?: string) => {
-    const r = routeFromTab(tab, repos.find((x) => x.id === repoId)?.floor ?? null);
-    if (r) go(r);
-  };
-  return <Company go={fromPocket} banners={false} />;
+export function MetricsScreen() {
+  return <MetricsPanel />;
 }
 
 // ---------- settings ----------
