@@ -1,7 +1,7 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CareerCard } from './CareerCard';
 import { api } from '../api';
-import { isBusy, kanbanFor, agentsOnRepo, useStore } from '../store';
+import { isBusy, kanbanFor, agentsOnRepo, useStore, type Agent } from '../store';
 import { AgentSetup } from './AgentSettings';
 import { confirmDialog } from './Confirm';
 import { LiveTerminal } from './LiveTerminal';
@@ -13,7 +13,6 @@ import { MicButton } from './MicButton';
 import { closeOverlay, Panel } from './Panel';
 import { loadScreenshot } from '../screenshot';
 import { toolVerb } from '../toolVerb';
-import { followAgent } from '../world/camera/rig';
 
 const STATUS_LABEL: Record<string, string> = {
   idle: 'free',
@@ -34,7 +33,11 @@ function elapsed(from: number | null, to: number | null) {
   return `${Math.floor(s / 60)}m ${s % 60}s`;
 }
 
-export function TerminalView({ agentId }: { agentId: string }) {
+/**
+ * One agent's panel. The 3D office passes `onFollow` (the camera trails them; the button is hidden without it) and
+ * `lookEditor` (the look editor, which needs the 3D preview).
+ */
+export function TerminalView({ agentId, onFollow, lookEditor }: { agentId: string; onFollow?: (agentId: string) => void; lookEditor?: (agent: Agent) => ReactNode }) {
   const agent = useStore((s) => s.agents[agentId]);
   const log = useStore((s) => s.logs[agentId]) ?? [];
   const shotAt = useStore((s) => s.screens[agentId]);
@@ -134,9 +137,11 @@ export function TerminalView({ agentId }: { agentId: string }) {
           )}
           {working && agent.currentTool && <span className="muted small">{toolVerb(agent.currentTool)}…</span>}
           <span className="spacer" />
-          <button className="btn btn-small" title={`Trail ${agent.name} with the camera wherever they go (a movement key or Esc gives you the controls back)`} onClick={() => followAgent(agent.id)}>
-            🎥 Follow
-          </button>
+          {onFollow && (
+            <button className="btn btn-small" title={`Trail ${agent.name} with the camera wherever they go (a movement key or Esc gives you the controls back)`} onClick={() => onFollow(agent.id)}>
+              🎥 Follow
+            </button>
+          )}
           {agent.career && (
             <button className={`btn btn-small setup-toggle ${showCareer ? 'setup-toggle-on' : ''}`} aria-expanded={showCareer} title={`${agent.name}'s career on the team`} onClick={() => setShowCareer((v) => !v)}>
               🏅 Career
@@ -216,7 +221,7 @@ export function TerminalView({ agentId }: { agentId: string }) {
       {showCareer && <CareerCard agent={agent} />}
       {showSetup && (
         <div id="agent-setup" className="setup-wrap">
-          <AgentSetup agent={agent} />
+          <AgentSetup agent={agent} lookEditor={lookEditor?.(agent)} />
         </div>
       )}
 

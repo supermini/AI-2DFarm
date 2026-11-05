@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
-import { requestLook } from '../world/Player';
 import { CEO_ID, type RepoView } from '../../../shared/types';
 import { Key } from './Key';
 import { ProjectPicker } from './ProjectPicker';
@@ -37,7 +36,8 @@ function CeoPortrait({ color, look }: { color: string; look: 'feminine' | 'mascu
   );
 }
 
-export function SetupWizard() {
+/** `onFinish` runs when the office opens (the 3D office uses it to show the player's look); without 3D, leave it out. */
+export function SetupWizard({ onFinish }: { onFinish?: () => void }) {
   const user = useStore((s) => s.user);
   const demo = useStore((s) => s.demo);
   const ghReady = useStore((s) => s.ghReady);
@@ -67,7 +67,7 @@ export function SetupWizard() {
       await save();
       await api.updateSettings({ setupDone: true, tutorialStep: 0 });
       start();
-      requestLook();
+      onFinish?.();
     } catch {
       setBusy(false); // api() already toasted
     }

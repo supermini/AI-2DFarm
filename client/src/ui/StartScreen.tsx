@@ -21,7 +21,7 @@ export function StartScreen() {
   const waiting = usePhoneBadge();
   const phoneKey = useKeyName('phone');
   if (started) return null;
-  if (loaded && !settings.setupDone) return <SetupWizard />;
+  if (loaded && !settings.setupDone) return <SetupWizard onFinish={requestLook} />;
 
   const enter = () => {
     start();
