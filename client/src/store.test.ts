@@ -1,119 +1,91 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentView, IssueInfo, LogLine, OpsAlarm, PullInfo, QaStatus, QaView, RepoView, WorldSnapshot } from '../../shared/types';
+import type { AgentView, IssueInfo, LogLine, OpsAlarm, PullInfo, RepoView, ServerEvent, WorldSnapshot } from '../../shared/types';
 
-// The merge trigger, through the store's own apply(): sounds and the gong are mocked (they need a browser).
-vi.mock('./ui/sfx', () => ({ alarm: vi.fn(), audioUnlocked: () => false, chirp: vi.fn(), cue: vi.fn() }));
-vi.mock('./world/gongRunner', () => ({ gongForMerge: vi.fn(() => 'solo') }));
+// The merge chime, through the store's own apply(): sounds are mocked (they need a browser).
+vi.mock('./ui/sfx', () => ({ alarm: vi.fn(), audioUnlocked: () => false, chirp: vi.fn(), cue: vi.fn(), getAudioPrefs: vi.fn(() => ({ mergeChime: true })) }));
 
-const { floorPrCounts, kanbanFor, qaKey, useStore } = await import('./store');
-const { alarm, cue } = await import('./ui/sfx');
+const { kanbanFor, useStore } = await import('./store');
+const { alarm, cue, getAudioPrefs } = await import('./ui/sfx');
 const { EMPTY_OPS } = await import('./ops');
-const { gongForMerge } = await import('./world/gongRunner');
-const { onMerge } = await import('./world/confetti');
 
 const pr = (number: number, state: PullInfo['state'], headRefName = `feature/${number}`) => ({ number, state, headRefName }) as PullInfo;
 const repo = (floor: number, ...pulls: PullInfo[]) => ({ id: `acme/floor${floor}`, floor, pulls }) as RepoView;
 const snapshot = (repos: RepoView[], agents: Partial<AgentView>[] = []) =>
   ({ type: 'snapshot', data: { repos, agents, qa: [], requests: [], messages: [], phoneReadAt: 0, settings: {}, ceo: {}, usage: {}, clis: [] } as unknown as WorldSnapshot }) as const;
 
-describe('the merge gong trigger', () => {
+describe('the merge chime', () => {
+  const chimes = () => vi.mocked(cue).mock.calls.filter(([c]) => c === 'merged').length;
+
   beforeEach(() => {
     useStore.setState({ loaded: false, repos: [] });
-    vi.mocked(gongForMerge).mockClear().mockReturnValue('solo');
     vi.mocked(cue).mockClear();
+    vi.mocked(getAudioPrefs).mockReturnValue({ mergeChime: true } as ReturnType<typeof getAudioPrefs>);
   });
 
-  it('never fires for merges in the first snapshot, or in a snapshot after a reconnect', () => {
+  it('never sounds for merges in the first snapshot, or in a snapshot after a reconnect', () => {
     const { apply } = useStore.getState();
     apply(snapshot([repo(1, pr(1, 'MERGED'), pr(2, 'OPEN'))]));
     apply(snapshot([repo(1, pr(1, 'MERGED'), pr(2, 'MERGED'))])); // #2 merged while we were disconnected
-    expect(gongForMerge).not.toHaveBeenCalled();
-    expect(cue).not.toHaveBeenCalled();
+    expect(chimes()).toBe(0);
   });
 
-  it('fires on open → MERGED, for that repo’s floor', () => {
+  it('sounds on open → MERGED, once per update', () => {
     const { apply } = useStore.getState();
-    apply(snapshot([repo(1, pr(1, 'MERGED'), pr(2, 'OPEN'))]));
-    apply({ type: 'repo', repo: repo(1, pr(1, 'MERGED'), pr(2, 'OPEN')) }); // nothing new
-    expect(gongForMerge).not.toHaveBeenCalled();
-    apply({ type: 'repo', repo: repo(1, pr(1, 'MERGED'), pr(2, 'MERGED')) });
-    expect(gongForMerge).toHaveBeenCalledTimes(1);
-    expect(gongForMerge).toHaveBeenCalledWith({ repoId: 'acme/floor1', prNumber: 2, agentId: null }, false);
-    expect(cue).not.toHaveBeenCalledWith('merged'); // the gong is the merge cue now
+    apply(snapshot([repo(1, pr(1, 'MERGED'), pr(2, 'OPEN'), pr(3, 'OPEN'))]));
+    apply({ type: 'repo', repo: repo(1, pr(1, 'MERGED'), pr(2, 'OPEN'), pr(3, 'OPEN')) }); // nothing new
+    expect(chimes()).toBe(0);
+    apply({ type: 'repo', repo: repo(1, pr(1, 'MERGED'), pr(2, 'MERGED'), pr(3, 'MERGED')) });
+    expect(chimes()).toBe(1);
   });
 
-  it('still sends the merge confetti (confetti.ts) along with the gong', () => {
-    const bursts: unknown[] = [];
-    const off = onMerge((b) => bursts.push(b));
+  it('stays quiet unless it is turned on', () => {
+    vi.mocked(getAudioPrefs).mockReturnValue({ mergeChime: false } as ReturnType<typeof getAudioPrefs>);
     const { apply } = useStore.getState();
     apply(snapshot([repo(1, pr(5, 'OPEN'))]));
     apply({ type: 'repo', repo: repo(1, pr(5, 'MERGED')) });
-    off();
-    expect(gongForMerge).toHaveBeenCalledTimes(1);
-    expect(bursts).toEqual([{ repoId: 'acme/floor1', prNumber: 5, agentId: null }]);
+    expect(chimes()).toBe(0);
   });
 
-  it('sends the PR’s author, one call per merge in order', () => {
+  it('stays quiet in a replay', () => {
     const { apply } = useStore.getState();
-    const ada = { id: 'a1', name: 'Ada', role: 'agent', repoId: 'acme/floor1', log: [] } as Partial<AgentView>;
-    apply(snapshot([repo(1, pr(4, 'OPEN', 'swarm/issue-4-ada'), pr(5, 'OPEN'))], [ada]));
-    apply({ type: 'repo', repo: repo(1, pr(4, 'MERGED', 'swarm/issue-4-ada'), pr(5, 'MERGED')) });
-    expect(vi.mocked(gongForMerge).mock.calls.map(([b]) => b)).toEqual([
-      { repoId: 'acme/floor1', prNumber: 4, agentId: 'a1' },
-      { repoId: 'acme/floor1', prNumber: 5, agentId: null },
-    ]);
+    apply(snapshot([repo(1, pr(5, 'OPEN'))]));
+    apply({ type: 'repo', repo: repo(1, pr(5, 'MERGED')) }, 'play');
+    expect(chimes()).toBe(0);
   });
 
-  it('fires the same for a merge in a batch of floor patches, which keep what they leave out', () => {
+  it('sounds the same for a merge in a batch of floor patches, which keep what they leave out', () => {
     const { apply } = useStore.getState();
     apply(snapshot([{ ...repo(1, pr(3, 'OPEN')), fullName: 'acme/floor1' }, repo(2)]));
     apply({ type: 'repos', repos: [{ id: 'acme/floor1', pulls: [pr(3, 'MERGED')] }, { id: 'acme/gone', pulls: [] }] });
-    expect(gongForMerge).toHaveBeenCalledWith({ repoId: 'acme/floor1', prNumber: 3, agentId: null }, false);
+    expect(chimes()).toBe(1);
     expect(useStore.getState().repos.map((r) => [r.id, r.fullName])).toEqual([
       ['acme/floor1', 'acme/floor1'],
       ['acme/floor2', undefined],
     ]);
   });
-
-  it('chimes instead when the merge is on a floor whose gong is not on screen', () => {
-    vi.mocked(gongForMerge).mockReturnValue('absent');
-    const { apply } = useStore.getState();
-    apply(snapshot([repo(2, pr(7, 'OPEN'))]));
-    apply({ type: 'repo', repo: repo(2, pr(7, 'MERGED')) });
-    expect(cue).toHaveBeenCalledWith('merged');
-  });
 });
 
-describe('floorPrCounts', () => {
-  const floor = (...pulls: PullInfo[]) => ({ ...repo(1, ...pulls), issues: [], autoMerge: false }) as RepoView;
-  const draft = (number: number) => ({ ...pr(number, 'OPEN'), isDraft: true }) as PullInfo;
-  const records = (...recs: [number, QaStatus][]) =>
-    Object.fromEntries(recs.map(([n, status]) => [qaKey('acme/floor1', n), { repoId: 'acme/floor1', prNumber: n, status, round: 1 } as QaView]));
-
-  it('counts an open passed PR as ready, but never a merged or closed one', () => {
-    const r = floor(pr(1, 'OPEN'), pr(2, 'MERGED'), pr(3, 'CLOSED'));
-    expect(floorPrCounts(r, records([1, 'passed'], [2, 'passed'], [3, 'failed']))).toEqual({ inQa: 0, ready: 1, needsYou: 0 });
-  });
-
-  it('counts needs-human separately, as well as in QA', () => {
-    const r = floor(pr(1, 'OPEN'), pr(2, 'OPEN'), pr(3, 'OPEN'));
-    expect(floorPrCounts(r, records([1, 'needs-human'], [2, 'fixing']))).toEqual({ inQa: 3, ready: 0, needsYou: 1 });
-  });
-
-  it('does not count a needs-human PR the CEO is still triaging as needing you', () => {
-    const r = floor(pr(1, 'OPEN'), pr(2, 'OPEN'));
-    const qa = records([1, 'needs-human'], [2, 'needs-human']);
-    qa[qaKey('acme/floor1', 1)] = { ...qa[qaKey('acme/floor1', 1)], ceoLooking: true };
-    expect(floorPrCounts(r, qa)).toEqual({ inQa: 2, ready: 0, needsYou: 1 });
-  });
-
-  it('matches the Kanban In QA and Ready to merge columns, drafts included', () => {
-    const r = floor(pr(1, 'OPEN'), draft(2), draft(3), pr(4, 'OPEN'), pr(5, 'OPEN'), pr(6, 'MERGED'), pr(7, 'CLOSED'));
-    const qa = records([1, 'passed'], [2, 'passed'], [4, 'testing'], [5, 'needs-human'], [6, 'passed'], [7, 'needs-human']);
-    const cols = kanbanFor(r, [], qa);
-    const counts = floorPrCounts(r, qa);
-    expect(counts).toEqual({ inQa: 3, ready: 2, needsYou: 1 });
-    expect([counts.inQa, counts.ready]).toEqual([cols.qa.length, cols.ready.length]);
+describe('what only the 3D office drew', () => {
+  it('leaves the state alone, live and in a replay (old journals still carry these events)', () => {
+    const { apply } = useStore.getState();
+    apply(snapshot([repo(1)]));
+    const before = useStore.getState();
+    const events = [
+      { type: 'weather', weather: {} },
+      { type: 'visitors', visitors: [] },
+      { type: 'visitorPose', pose: {} },
+      { type: 'visitorEmote' },
+      { type: 'visitorPing' },
+      { type: 'progress', progress: {} },
+      { type: 'reward', reward: {} },
+      { type: 'pong', repoId: 'acme/floor1', board: [] },
+    ] as unknown as ServerEvent[];
+    for (const ev of events) {
+      apply(ev);
+      apply(ev, 'play');
+      apply(ev, 'seek');
+    }
+    expect(useStore.getState()).toBe(before);
   });
 });
 

@@ -1,10 +1,8 @@
 import { useStore } from './store';
 import { restartExpected, shouldReload } from './officeUpdate';
 import type { ClientEvent, ServerEvent } from '../../shared/types';
-import { currentWatch, dashboardWatch } from './watch';
-import { useMode } from './pocket/mode';
+import { dashboardWatch } from './watch';
 import { shownAgents, useVisible } from './dashboard/visible';
-import { hitchWs } from './hitches';
 
 let retry = 0;
 let socket: WebSocket | null = null;
@@ -13,8 +11,8 @@ let sentWatch = '';
 /** Tells the office what this tab shows (watch.ts) whenever that changes, so it sends only the lines it needs. */
 function sendWatch() {
   const state = useStore.getState();
-  // The dashboard says what its screens show (dashboard/visible.ts); the 3D office, where the player stands.
-  const shown = useMode.getState().mode === 'dashboard' ? dashboardWatch({ ...state, floor: useVisible.getState().floor, shown: shownAgents(useVisible.getState()) }) : currentWatch(state);
+  // The dashboard says what its screens show (dashboard/visible.ts).
+  const shown = dashboardWatch({ ...state, floor: useVisible.getState().floor, shown: shownAgents(useVisible.getState()) });
   const watch = JSON.stringify({ type: 'lines', ...shown } satisfies ClientEvent);
   if (socket?.readyState !== WebSocket.OPEN || watch === sentWatch) return;
   sentWatch = watch;
@@ -23,23 +21,7 @@ function sendWatch() {
 let watching = false;
 // Back from the time-lapse: everything waits for the fresh snapshot asked for, so nothing applies on top of the replay.
 let awaitingSnapshot = false;
-// Presence too: the other visitors are live people, there in a replay as much as in the live office.
-const OUTSIDE_REPLAY = new Set<ServerEvent['type']>(['notify', 'notifyChannels', 'settings', 'officeUpdate', 'clis', 'voiceKey', 'voiceCache', 'progress', 'visitors', 'visitorPose', 'visitorEmote', 'visitorPing']);
-let opens = 0;
-/** Characters in and out on /ws since the page loaded, and in for presence alone (its probe turns them into rates). */
-export const wsTraffic = { in: 0, out: 0, presence: 0 };
-
-/** Sends a message on /ws; false while disconnected, when it's dropped. */
-export function sendWs(msg: ClientEvent) {
-  if (socket?.readyState !== WebSocket.OPEN) return false;
-  const text = JSON.stringify(msg);
-  socket.send(text);
-  wsTraffic.out += text.length;
-  return true;
-}
-
-/** How many times the socket has opened: a new one means the server has forgotten this tab (presence tells it again). */
-export const wsOpens = () => opens;
+const OUTSIDE_REPLAY = new Set<ServerEvent['type']>(['notify', 'notifyChannels', 'settings', 'officeUpdate', 'clis', 'voiceKey', 'voiceCache']);
 
 /** The time-lapse stopped: asks for the live office again (a reconnect brings a snapshot anyway). */
 export function requestSnapshot() {
@@ -71,12 +53,11 @@ function reloadForNewCommit(commit: string): boolean {
 }
 
 export function connect() {
-  // subscribed here, not as the module loads: the store imports this module (through presence) before it exists
+  // subscribed here, not as the module loads, so importing this module has no side effects
   if (!watching) {
     watching = true;
     useStore.subscribe(sendWatch);
     useVisible.subscribe(sendWatch);
-    useMode.subscribe(sendWatch);
   }
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);
@@ -84,19 +65,12 @@ export function connect() {
   ws.onopen = () => {
     retry = 0;
     sentWatch = '';
-    opens++;
     useStore.getState().setConnected(true);
     sendWatch();
   };
   ws.onmessage = (e) => {
-    const bytes = typeof e.data === 'string' ? e.data.length : 0;
-    wsTraffic.in += bytes;
-    const from = performance.now();
-    let type = 'other';
     try {
       const ev = JSON.parse(e.data) as ServerEvent;
-      type = ev.type;
-      if (ev.type.startsWith('visitor')) wsTraffic.presence += e.data.length;
       if (ev.type === 'snapshot' && ev.data.officeCommit && reloadForNewCommit(ev.data.officeCommit)) return;
       // While the time-lapse plays it owns the office; it asks for a fresh snapshot when it stops. What isn't part of
       // the replayed office (notifications, settings, the office's own update…) still applies.
@@ -111,7 +85,6 @@ export function connect() {
     } catch (err) {
       console.error('bad server event', err);
     }
-    hitchWs(type, bytes, performance.now() - from); // the hitch recorder: what each message cost to apply
   };
   ws.onclose = () => {
     const s = useStore.getState();

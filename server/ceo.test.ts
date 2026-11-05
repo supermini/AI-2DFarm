@@ -1,16 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { describe, expect, it } from 'vitest';
-import { EAST_DESKS, MAX_DESKS } from '../client/src/world/layout.ts';
-import { FLOOR_SEATS, type QaStatus } from '../shared/types.ts';
+import type { QaStatus } from '../shared/types.ts';
 import type { HttpError } from './httpError.ts';
 import { ceoJobPrompt, ceoSystemPrompt, checkCloseIssue, createOfficeTools, floorCapacity, IssueCap, jobLabel, planDependencies, plannedSize, scalePlan, type CeoJob, type DependsRequest, type TeamNow } from './ceo.ts';
-
-describe('seats', () => {
-  it('match the desks the client draws', () => {
-    expect(MAX_DESKS + EAST_DESKS.z.length).toBe(FLOOR_SEATS);
-  });
-});
 
 describe('scalePlan (scale_team)', () => {
   // Desks 0-3: Ada and Linus are free, Grace and Alan busy; one new agent waits in the lobby.

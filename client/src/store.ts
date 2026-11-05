@@ -1,98 +1,30 @@
 import { create } from 'zustand';
-import { CEO_ID, DEFAULT_DOG_NAME, DEFAULT_MAX_AGENTS, type AgentView, type CeoInfo, type CliView, type CloudView, type DoctorFinding, type HireRequestView, type LogLine, type NotifyChannelsView, type OfficeUpdateView, type OpsView, type PhoneMessage, type PongRow, type PrPreviewView, type QaView, type RepoView, type ServerEvent, type SwarmSettings, type TickerItem, type UsageView, type VisitorView, type VoiceCacheView, type WorldSnapshot } from '../../shared/types';
+import { CEO_ID, DEFAULT_DOG_NAME, DEFAULT_MAX_AGENTS, type AgentView, type CeoInfo, type CliView, type CloudView, type DoctorFinding, type HireRequestView, type LogLine, type NotifyChannelsView, type OfficeUpdateView, type OpsView, type PhoneMessage, type PrPreviewView, type QaView, type RepoView, type ServerEvent, type SwarmSettings, type TickerItem, type UsageView, type VoiceCacheView, type WorldSnapshot } from '../../shared/types';
 import { blockers } from '../../shared/issues';
 import { latestListed } from '../../shared/watch';
-import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS, EMPTY_WEATHER_VIEW, type WeatherView } from '../../shared/outside';
+import { DEFAULT_WEATHER, DEFAULT_WORLD_EVENTS } from '../../shared/outside';
 import { DEFAULT_NOTIFY } from '../../shared/notify';
 import { DEFAULT_CLOUD, EMPTY_CLOUD } from '../../shared/cloud';
 import { speechText } from '../../shared/speech';
 import { showDesktopNote } from './notifications';
 import { EMPTY_OPS, newAlarms } from './ops';
-import type { DecorItem, ProgressView } from '../../shared/progress';
-import { needsManager, qaCardNote, type CardTone } from './qaCard';
+import { qaCardNote, type CardTone } from './qaCard';
 import { announce } from './ui/announce';
-import { alarm, audioUnlocked, chirp, cue } from './ui/sfx';
+import { alarm, audioUnlocked, chirp, cue, getAudioPrefs } from './ui/sfx';
 import { claimVoice } from './ui/voiceClaim';
 import { speakable } from './ui/voiceQueue';
-import { recentQaRecord, rememberQa } from './qaRecord';
-import { emitMerge, emitReward, mergeGong, roster, visitor } from './effects';
-import { mergeBursts } from './merges';
-
-/** The roof's floor number (world/layout.ts ROOF). */
-const ROOF = -1;
-
-/** A snack from the fridge (world/fridge.ts SNACKS). */
-export type SnackId = 'overclock' | 'sparkling' | 'coldbrew' | 'mate' | 'pizza' | 'protein' | 'cheese' | 'chocolate';
+import { rememberQa } from './qaRecord';
+import { newlyMerged } from './merges';
 
 export type Agent = Omit<AgentView, 'log'>;
 
-export type PhoneTab = 'chat' | 'hires' | 'company' | 'games';
+export type PhoneTab = 'chat' | 'hires';
 
 export type Overlay =
   | { kind: 'terminal'; agentId: string }
-  | { kind: 'kanban'; repoId: string }
-  /** One whiteboard card up close (CardView.tsx). `peel`: its sticky can come off the board (G). */
-  | { kind: 'card'; repoId: string; key: string; number: number; pr: boolean; peel?: boolean }
   | { kind: 'app'; repoId: string; pr?: number | null } // pr: open the viewer on that channel (null: main)
-  | { kind: 'elevator' }
-  | { kind: 'manager'; tab?: ManagerTab; repoId?: string; card?: string } // card: an OpsAlarm id, or 'usage', to open at
-  | { kind: 'phone'; tab?: PhoneTab; requestId?: string }
-  /** A team change face to face: a new agent waiting in the lobby, or the CEO's let-go note on a desk. */
-  | { kind: 'interview'; requestId: string }
-  | { kind: 'help'; tab?: HelpTab }
-  | { kind: 'catalogue'; repoId?: string } // the lobby kiosk (#210)
-  | { kind: 'decor-box'; repoId: string } // a floor's decor box
-  /** The floor as a list (Settings → Accessibility): who is there, their status and what they're doing. */
-  | { kind: 'floorList' };
-
-/** Help's tabs: how the office works, and the controls (keys, mouse, gamepad). */
-export type HelpTab = 'office' | 'controls';
-
-export type ManagerTab = 'floors' | 'ops' | 'ceo' | 'team' | 'issues' | 'settings' | 'timelapse' | 'access';
-
-export interface Focus {
-  id: string;
-  label: string;
-  // resume: the usage meter while pacing, resume full speed (asks first)
-  action:
-    | Overlay
-    | { kind: 'hire'; repoId: string }
-    | { kind: 'pickup'; toyId: string }
-    | { kind: 'poke'; toyId: string }
-    | { kind: 'coffee'; op: 'place' | 'brew' | 'take' }
-    /** The kitchenette fridge (fridgeState.ts): open or close its door, grab a snack, or read the label on someone's lunch. */
-    | { kind: 'fridge'; op: 'door' | 'take' | 'lunch'; snack?: SnackId }
-    | { kind: 'jukebox'; op: 'next' | 'toggle' | 'station' | 'vol+' | 'vol-' }
-    | { kind: 'channel'; repoId: string; pr: number | null }
-    | { kind: 'resume' }
-    | { kind: 'roof'; op: string }
-    | { kind: 'decoration'; op: 'place' | 'take' | 'box' | 'arcade'; slot?: string }
-    | { kind: 'trophy'; id: string }
-    /** Say hi to someone with nothing to do (Chatter.tsx). */
-    | { kind: 'greet'; agentId: string }
-    /** E on a holiday theme's thing (themes/active.ts). */
-    | { kind: 'theme'; id: string }
-    /** Pick up a paddle at that end of the ping-pong table (toys/pongState.ts). */
-    | { kind: 'pong'; end: 'west' | 'east' };
-}
-
-/** What the player is carrying. Other items (a blaster, say) join the union with their own kind. */
-export type Held =
-  | { kind: 'ball'; id: string }
-  /** A foam blaster: darts left in the magazine, and performance.now() when a reload started (null when not reloading). */
-  | { kind: 'blaster'; id: string; ammo: number; reloadAt: number | null }
-  /** A coffee mug: sips of coffee left, 0 (empty) to 3 (full). */
-  | { kind: 'mug'; id: string; sips: number }
-  /** A sticky peeled off the whiteboard (boardHands.ts): an issue to build, or a PR to test, for a free agent's desk. */
-  | { kind: 'sticky'; id: string; repoId: string; key: string; number: number; pr: boolean }
-  /** A sausage in a bun off the roof's grill: bites left, eaten like coffee is sipped. */
-  | { kind: 'sausage'; id: string; bites: number; charred: boolean }
-  /** Something from the kitchenette fridge (fridge.ts): sips or bites left, had like coffee or a sausage. */
-  | { kind: 'snack'; id: string; snack: SnackId; left: number }
-  /** A decoration on its way to a slot (#210): from the floor's decor box (from null) or from the slot it stood in. */
-  | { kind: 'decor'; id: string; item: DecorItem; from: string | null }
-  /** A ping-pong paddle, playing at that end of the table (toys/pongState.ts): mouse and camera belong to the match. */
-  | { kind: 'paddle'; id: 'west' | 'east' };
+  /** The CEO's chat is on screen. */
+  | { kind: 'phone'; tab?: PhoneTab; requestId?: string };
 
 export interface Toast {
   id: number;
@@ -131,31 +63,18 @@ interface State {
   voiceKeySet: boolean; // an ElevenLabs key is saved on the server
   voiceKeyHint: string; // its last 4 characters
   voiceCache: VoiceCacheView; // the voice's saved clips: Settings → Voice, and which messages the phone's ▶ replays
-  progress: ProgressView; // coins, decorations and achievements (#210)
   voiceSpeaking: number | null; // the phone message being read aloud in this tab (ui/voiceMessages.ts)
-  weather: WeatherView; // the real local weather's place and latest reading (Settings → Weather)
-  ticker: TickerItem[]; // the floors' recent activity lines, oldest first (world/ActivityTicker.tsx)
+  ticker: TickerItem[]; // the floors' recent activity lines, oldest first (dashboard/ActivityFeed.tsx)
   notifyChannels: NotifyChannelsView; // which chat apps have a webhook saved (hints only) and how many devices get push
   cloud: CloudView; // Settings → Cloud agents: the Upstash account and what cloud agents sign in with (never a key)
-  pong: Record<string, PongRow[]>; // each floor's ping-pong leaderboard by repo id, best first
   restarting: boolean; // the connection dropped because the office is restarting to update
-  visitors: VisitorView[]; // everyone else appearing in the office, any floor (presence; their poses skip the store)
   replaying: boolean; // the time-lapse (replay.ts) is showing a recorded day: live events wait, live actions are off
 
-  floor: number; // 0 = lobby
-  travel: { to: number; phase: 'closing' | 'opening' } | null;
   overlay: Overlay | null;
-  focus: Focus | null;
-  locked: boolean;
-  started: boolean;
   toasts: Toast[];
-  held: Held | null;
-  /** performance.now() when the player started charging a throw; null when they aren't. */
-  chargeAt: number | null;
 
   /**
-   * Folds an event into the state. The time-lapse passes `replay`: 'play' shows it (gong and confetti, no cues, toasts
-   * or voice), 'seek' only moves the state (fast-forwarding to a point on the timeline).
+   * Folds an event into the state. The time-lapse passes `replay`: 'play' shows it (no cues, toasts or voice), 'seek' only moves the state (fast-forwarding to a point on the timeline).
    */
   apply(ev: ServerEvent, replay?: 'play' | 'seek'): void;
   setConnected(v: boolean): void;
@@ -163,47 +82,13 @@ interface State {
   setRestarting(v: boolean): void;
   setOfficeUpdate(u: OfficeUpdateView): void;
   openOverlay(o: Overlay | null): void;
-  setFocus(f: Focus | null): void;
-  /** Pick something up (or swap), or let go of it with null. Always ends a charge. */
-  setHeld(h: Held | null): void;
-  setCharge(at: number | null): void;
-  setLocked(v: boolean): void;
   setWorkersOpen(v: boolean): void;
-  start(): void;
-  goToFloor(n: number): void;
-  finishTravel(phase: 'arrived' | 'done'): void;
   pushToast(level: Toast['level'], text: string): void;
   dismissToast(id: number): void;
 }
 
 let toastSeq = 1;
 
-// Where the viewer was standing, so a refresh puts them back on the same floor and spot.
-export interface SavedView {
-  floor: number;
-  x: number;
-  z: number;
-  yaw: number;
-  pitch: number;
-}
-const VIEW_KEY = 'cubefarm:view';
-
-export function loadView(): SavedView | null {
-  try {
-    const v = JSON.parse(localStorage.getItem(VIEW_KEY) ?? 'null') as SavedView | null;
-    return v && [v.floor, v.x, v.z, v.yaw, v.pitch].every(Number.isFinite) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-export function saveView(v: SavedView) {
-  try {
-    localStorage.setItem(VIEW_KEY, JSON.stringify(v));
-  } catch {
-    // storage may be unavailable (private mode); the view just won't be remembered
-  }
-}
 const LOG_KEEP = 600;
 const TICKER_KEEP = 120; // ticker lines kept across every floor
 
@@ -259,26 +144,15 @@ export const useStore = create<State>((set, get) => ({
   voiceKeySet: false,
   voiceKeyHint: '',
   voiceCache: { clips: 0, bytes: 0, saved: [] },
-  progress: { floors: {}, achievements: [], coffees: 0, merges: 0 },
   voiceSpeaking: null,
-  weather: EMPTY_WEATHER_VIEW,
   ticker: [],
   notifyChannels: { webhooks: { ntfy: { set: false, hint: '' } }, pushDevices: 0 },
   cloud: EMPTY_CLOUD,
-  pong: {},
   restarting: false,
-  visitors: [],
   replaying: false,
 
-  floor: loadView()?.floor ?? 0,
-  travel: null,
   overlay: null,
-  focus: null,
-  locked: false,
-  started: false,
   toasts: [],
-  held: null,
-  chargeAt: null,
 
   apply(ev, replay) {
     // Cues compare the old state with the new, so each change sounds once; snapshots (page load,
@@ -301,7 +175,6 @@ export const useStore = create<State>((set, get) => ({
         const prPreviews: Record<string, PrPreviewView> = {};
         for (const p of d.prPreviews ?? []) prPreviews[qaKey(p.repoId, p.pr)] = p;
         // Stay on the current (or remembered) floor if it still exists (the roof always does); otherwise go to the lobby.
-        const floorExists = get().floor === ROOF || d.repos.some((r) => r.floor === get().floor);
         set({
           loaded: true,
           user: d.user,
@@ -331,14 +204,10 @@ export const useStore = create<State>((set, get) => ({
           voiceKeySet: d.voiceKeySet ?? false,
           voiceKeyHint: d.voiceKeyHint ?? '',
           voiceCache: d.voiceCache ?? { clips: 0, bytes: 0, saved: [] },
-          weather: d.weather ?? EMPTY_WEATHER_VIEW,
           ticker: d.ticker ?? [],
           notifyChannels: d.notifyChannels ?? get().notifyChannels,
           cloud: d.cloud ?? EMPTY_CLOUD,
-          progress: d.progress ?? { floors: {}, achievements: [], coffees: 0, merges: 0 },
-          pong: d.pong ?? {},
           restarting: false,
-          floor: floorExists ? get().floor : 0,
         });
         break;
       }
@@ -346,28 +215,20 @@ export const useStore = create<State>((set, get) => ({
       case 'repos': {
         // one floor in full, or a batch of floors' changes (server/outbox.ts)
         let repos = get().repos;
-        const bursts: ReturnType<typeof mergeBursts> = [];
-        const covered = coversView(get().overlay);
         for (const patch of ev.type === 'repo' ? [ev.repo] : ev.repos) {
           const before = repos.find((r) => r.id === patch.id);
           if (!before && patch.fullName === undefined) continue; // a change to a floor this tab no longer has
           const next = { ...before, ...patch } as RepoView;
-          const qaFor = (n: number) => get().qa[qaKey(next.id, n)] ?? recentQaRecord(qaKey(next.id, n));
-          const merged = mergeBursts(live, before, next, qaFor, Object.values(get().agents));
-          // A merge on the player's floor sends its author running to bang the gong (or it bangs by itself) and the
-          // floor celebrates; anywhere else it's the chime.
-          if (merged.map((b) => mergeGong.ask(b, covered).includes(true)).includes(false) && cues) cue('merged');
-          bursts.push(...merged);
+          // The server toasts each merge; this tab adds the chime, if it's on (Settings → Notifications).
+          if (cues && newlyMerged(before?.pulls, next.pulls).length && getAudioPrefs().mergeChime) cue('merged');
           repos = [...repos.filter((r) => r.id !== next.id), next];
         }
         set({ repos: repos.sort((a, b) => a.floor - b.floor) });
-        for (const b of bursts) emitMerge(b);
         break;
       }
       case 'repoRemoved': {
         const repos = get().repos.filter((r) => r.id !== ev.repoId);
-        const floor = get().floor > repos.length ? 0 : get().floor;
-        set({ repos, floor });
+        set({ repos });
         break;
       }
       case 'agent': {
@@ -511,9 +372,6 @@ export const useStore = create<State>((set, get) => ({
       case 'voiceCache':
         set({ voiceCache: ev.voiceCache });
         break;
-      case 'weather':
-        set({ weather: ev.weather });
-        break;
       case 'ticker':
         set({ ticker: [...get().ticker.slice(-(TICKER_KEEP - 1)), ev.item] });
         break;
@@ -527,25 +385,15 @@ export const useStore = create<State>((set, get) => ({
         // This tab shows it only while it's hidden (notifications.ts); a visible office already chimes and toasts.
         showDesktopNote(ev.note, get().settings.notify?.channels.desktop !== false);
         break;
-      // Presence: the list is state; poses, emotes and pings go straight to the 3D view (effects.ts, to
-      // world/presence/presenceState.ts), and are dropped when nothing draws them.
+      // What only the 3D office drew. The server still sends these and old journals replay them: nothing to do.
+      case 'weather':
       case 'visitors':
-        set({ visitors: ev.visitors });
-        roster.emit(ev, get().floor);
-        break;
       case 'visitorPose':
       case 'visitorEmote':
       case 'visitorPing':
-        visitor.emit(ev, get().floor);
-        break;
       case 'progress':
-        set({ progress: ev.progress });
-        break;
       case 'reward':
-        if (live) emitReward(ev.reward);
-        break;
       case 'pong':
-        set({ pong: { ...get().pong, [ev.repoId]: ev.board } });
         break;
     }
   },
@@ -560,33 +408,9 @@ export const useStore = create<State>((set, get) => ({
       get().pushToast('info', '▶ That shows the live office: press Esc to leave the replay first.');
       return;
     }
-    // Opening any panel drops whatever you're carrying, so nothing is left floating behind it.
-    set(overlay ? { overlay, focus: null, held: null, chargeAt: null } : { overlay });
-    if (overlay && document.pointerLockElement) document.exitPointerLock();
+    set({ overlay });
   },
-  setFocus: (focus) => {
-    const cur = get().focus;
-    if (cur?.id === focus?.id && cur?.label === focus?.label) return;
-    set({ focus });
-  },
-  setHeld: (held) => set({ held, chargeAt: null }),
-  setCharge: (chargeAt) => set({ chargeAt }),
-  setLocked: (locked) => set({ locked }),
   setWorkersOpen: (workersOpen) => set({ workersOpen }),
-  start: () => set({ started: true }),
-  goToFloor(n) {
-    if (n === get().floor || get().travel) {
-      set({ overlay: null });
-      return;
-    }
-    set({ overlay: null, held: null, chargeAt: null, travel: { to: n, phase: 'closing' } });
-  },
-  finishTravel(phase) {
-    const t = get().travel;
-    if (!t) return;
-    if (phase === 'arrived') set({ floor: t.to, travel: { ...t, phase: 'opening' } });
-    else set({ travel: null });
-  },
   pushToast(level, text) {
     if (level === 'error') announce(text, 'assertive');
     const id = toastSeq++;
@@ -600,18 +424,10 @@ export const useStore = create<State>((set, get) => ({
 
 export const qaKey = (repoId: string, prNumber: number) => `${repoId}#${prNumber}`;
 
-export const repoOnFloor = (repos: RepoView[], floor: number) => repos.find((r) => r.floor === floor) ?? null;
-
 export const agentsOnRepo = (agents: Record<string, Agent>, repoId: string) =>
   Object.values(agents)
     .filter((a) => a.repoId === repoId)
     .sort((a, b) => a.desk - b.desk);
-
-/**
- * Panels that hide the whole office (the wide ones: Kanban, terminals and the manager's console), so the
- * 3D view can stop drawing behind them. The phone, help, elevator panel and confirm dialogs are see-through.
- */
-export const coversView = (o: Overlay | null) => o?.kind === 'kanban' || o?.kind === 'terminal' || o?.kind === 'manager';
 
 export const isBusy = (a: Agent) => a.status === 'preparing' || a.status === 'working';
 
@@ -619,14 +435,6 @@ export const isBusy = (a: Agent) => a.status === 'preparing' || a.status === 'wo
 export const unreadMessages = (messages: PhoneMessage[], readAt: number) => messages.filter((m) => m.from === 'ceo' && !m.requestId && m.at > readAt).length;
 
 export const pendingRequests = (requests: HireRequestView[]) => requests.filter((r) => r.status === 'pending');
-
-/** The red dot on the phone: decisions waiting on the manager plus unread messages. */
-export function usePhoneBadge() {
-  const requests = useStore((s) => s.requests);
-  const messages = useStore((s) => s.messages);
-  const readAt = useStore((s) => s.phoneReadAt);
-  return pendingRequests(requests).length + unreadMessages(messages, readAt);
-}
 
 export interface KanbanCard {
   key: string;
@@ -712,29 +520,4 @@ export function kanbanFor(repo: RepoView, agents: Agent[], qaRecords: Record<str
     .map((p) => ({ key: `m-${p.number}`, number: p.number, prNumber: p.number, title: p.title, url: p.url, agent: authorOf(p.number, p.headRefName) }));
 
   return { backlog, progress, qa, ready, merged };
-}
-
-export interface FloorPrCounts {
-  /** Open PRs in the Kanban's In QA column: queued, testing, failed, fixing, needs-human and untested ones. */
-  inQa: number;
-  /** Open PRs that passed QA (the Ready to merge column). */
-  ready: number;
-  /** Open PRs waiting on the manager (needs-human, and the CEO isn't triaging them); also counted in inQa. */
-  needsYou: number;
-}
-
-/**
- * A floor's PR counts, matching kanbanFor's columns. Only open PRs count: QA records outlive their PR's merge or
- * close, so counting records instead drifts further from the board with every merge.
- */
-export function floorPrCounts(repo: RepoView, qaRecords: Record<string, QaView>): FloorPrCounts {
-  const counts: FloorPrCounts = { inQa: 0, ready: 0, needsYou: 0 };
-  for (const p of repo.pulls) {
-    if (p.state !== 'OPEN') continue;
-    const rec = qaRecords[qaKey(repo.id, p.number)];
-    if (rec?.status === 'passed') counts.ready++;
-    else counts.inQa++;
-    if (needsManager(rec)) counts.needsYou++;
-  }
-  return counts;
 }

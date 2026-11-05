@@ -1,11 +1,12 @@
 // Settings → Notifications (docs/pocket.md): which events, the office URL messages link to, this device (desktop
 // notifications, Web Push) and ntfy. Its topic URL and token are write-only: the browser sees a hint of them.
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState, useSyncExternalStore } from 'react';
 import { api } from '../api';
 import { useStore } from '../store';
 import { NOTIFY_EVENTS } from '../../../shared/notify';
 import type { NotifyChannel, NotifySettings as Notify, NotifyWebhook } from '../../../shared/types';
 import { confirmDialog } from './Confirm';
+import { getAudioPrefs, setAudioPrefs, subscribeAudio, unlockAudio } from './sfx';
 import { showTestNote } from '../notifications';
 import { currentPush, disablePush, enablePush, pushSupport } from '../pwa';
 
@@ -259,6 +260,24 @@ function ThisDevice({ notify, save }: { notify: Notify; save: Save }) {
   );
 }
 
+/** This browser's merge chime: off unless asked for; each merge's toast shows either way. */
+function MergeChime() {
+  const on = useSyncExternalStore(subscribeAudio, () => getAudioPrefs().mergeChime);
+  return (
+    <label className="toggle block">
+      <input
+        type="checkbox"
+        checked={on}
+        onChange={(e) => {
+          unlockAudio();
+          setAudioPrefs({ mergeChime: e.target.checked });
+        }}
+      />
+      <span>🔔 Play a chime when a PR merges (this browser)</span>
+    </label>
+  );
+}
+
 export function NotifySettings() {
   const notify = useStore((s) => s.settings.notify);
   const [url, setUrl] = useState(notify.officeUrl);
@@ -276,6 +295,7 @@ export function NotifySettings() {
           </label>
         ))}
       </div>
+      <MergeChime />
       <label className="field">
         <span>Office address for links (optional)</span>
         <input

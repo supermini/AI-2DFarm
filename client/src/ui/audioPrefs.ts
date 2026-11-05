@@ -18,6 +18,7 @@ export interface AudioPrefs extends Record<SoundGroup, number> {
   soundtrack: boolean; // the adaptive score on or off
   chatter: ChatterLevel;
   silentBubbles: boolean; // chatter shows its bubbles without the babble voices
+  mergeChime: boolean; // a chime with each merge's toast (Settings → Notifications)
 }
 
 export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
@@ -26,6 +27,7 @@ export const DEFAULT_AUDIO_PREFS: AudioPrefs = {
   soundtrack: true,
   chatter: 'quiet',
   silentBubbles: false,
+  mergeChime: false,
   steps: 100,
   typing: 100,
   babble: 100,
@@ -52,6 +54,7 @@ export function normalizeAudioPrefs(raw: unknown): AudioPrefs {
     soundtrack: p.soundtrack !== false,
     chatter: CHATTER_LEVELS.includes(p.chatter as ChatterLevel) ? (p.chatter as ChatterLevel) : DEFAULT_AUDIO_PREFS.chatter,
     silentBubbles: p.silentBubbles === true,
+    mergeChime: p.mergeChime === true,
   };
   for (const g of SOUND_GROUPS) prefs[g] = percent(p[g], DEFAULT_AUDIO_PREFS[g]);
   return prefs;

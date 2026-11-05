@@ -9,9 +9,8 @@ import { requestSnapshot } from './net';
 import { EMPTY_OPS } from './ops';
 import { useStore } from './store';
 import { CHUNK_MS, clockTime, createClock, DEFAULT_SPEED, nextFetch, parsePresence, seekClock, touchPresence, withPlaying, withSpeed, type Presence, type ReplayClock } from './replayClock';
-import { gongVolume, replayTime } from './effects';
-import { setReplayMoment } from './officeTime';
 import { applyRepoPatch, isFrame, legacyAgent, legacyRequest, type JournalDayView, type JournalEvent, type JournalFrame, type JournalLine, type JournalMark } from '../../shared/journal';
+import { EMPTY_WEATHER_VIEW } from '../../shared/outside';
 import type { WorldSnapshot } from '../../shared/types';
 
 export type ReplayPhase = 'off' | 'loading' | 'playing' | 'paused' | 'ended' | 'error';
@@ -33,8 +32,6 @@ export interface ReplayView {
 export const useReplay = create<ReplayView>(() => ({ phase: 'off', from: 0, to: 0, time: 0, speed: DEFAULT_SPEED, label: '', marks: [], applied: 0, error: null }));
 
 const TICK_MS = 100;
-/** The gong's loudness while replaying: merges still boom, just not at full office volume. */
-const GONG_LEVEL = 0.4;
 
 let clock: ReplayClock | null = null;
 let lines: JournalLine[] = []; // fetched and not yet applied from `cursor` on
@@ -79,10 +76,11 @@ function frameSnapshot(f: JournalFrame): WorldSnapshot {
     notifyChannels: s.notifyChannels,
     ticker: f.ticker ?? [],
     prPreviews: [], // the PR theatre is live-only: off while replaying
-    progress: s.progress, // coins and decorations are the office's own, now
-    pong: s.pong, // so are the ping-pong leaderboards
-    weather: s.weather, // the real local weather is live, like the settings
     ops: f.ops ?? EMPTY_OPS, // a day from before mission control (or the demo's sample day) shows its screens empty
+    // Required by the snapshot's type; the store drops them.
+    progress: { floors: {}, achievements: [], coffees: 0, merges: 0 },
+    pong: {},
+    weather: EMPTY_WEATHER_VIEW,
   };
 }
 
@@ -125,7 +123,6 @@ function tick() {
   const now = real();
   const t = clockTime(clock, now);
   while (cursor < lines.length && lines[cursor].t <= t) applyLine(lines[cursor++], 'play');
-  showMoment(t);
   const ended = t >= clock.to;
   if (ended && clock.playing) clock = withPlaying(clock, false, now);
   const phase = useReplay.getState().phase;
@@ -152,7 +149,7 @@ async function fetchMore(want: { from: number; to: number }) {
   }
 }
 
-/** Jumps to `t`: from the nearest keyframe before it, fast-forwarding (no gong, no confetti) to `t`. */
+/** Jumps to `t`: from the nearest keyframe before it, fast-forwarding to `t`. */
 async function load(t: number) {
   const my = ++gen;
   fetching = false;
@@ -170,17 +167,10 @@ async function load(t: number) {
     if (lines.length && lines[0].t > t) at = lines[0].t;
     while (cursor < lines.length && lines[cursor].t <= at) applyLine(lines[cursor++], 'seek');
     clock = withPlaying(seekClock(clock, at, real()), playing, real());
-    showMoment(at);
     useReplay.setState({ phase: playing ? 'playing' : 'paused', time: at, applied });
   } catch (err) {
     if (my === gen) fail(err);
   }
-}
-
-/** The moment on screen: the office's clocks (officeTime.ts) and the sky (effects.ts, world/sky/useDayTime.ts). */
-function showMoment(at: number | null) {
-  setReplayMoment(at);
-  replayTime.emit(at);
 }
 
 /** Starts the time-lapse over [from, to]: the office shows the recorded day until stopReplay (or Esc). */
@@ -190,7 +180,6 @@ export async function startReplay(opts: { from: number; to: number; label?: stri
   store.openOverlay(null);
   store.setReplaying(true);
   const mine = ++session;
-  gongVolume.emit(GONG_LEVEL);
   const speed = opts.speed ?? useReplay.getState().speed;
   clock = createClock(opts.from, opts.to, speed, real());
   lines = [];
@@ -224,8 +213,6 @@ export function stopReplay() {
   lines = [];
   cursor = 0;
   fetching = false;
-  showMoment(null);
-  gongVolume.emit(1);
   useReplay.setState({ phase: 'off', marks: [], error: null });
   requestSnapshot(); // before the flag drops, so no live event lands on the replayed state
   useStore.getState().setReplaying(false);
@@ -240,7 +227,6 @@ export function seekReplay(t: number) {
     while (cursor < lines.length && lines[cursor].t <= target) applyLine(lines[cursor++], 'seek');
     clock = seekClock(clock, target, real());
     if (target < clock.to && useReplay.getState().phase === 'ended') clock = withPlaying(clock, true, real());
-    showMoment(target);
     useReplay.setState({ time: target, applied, phase: clock.playing ? 'playing' : 'paused' });
     return;
   }
