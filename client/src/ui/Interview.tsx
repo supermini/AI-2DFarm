@@ -12,7 +12,8 @@ import { CLAUDE_MODELS, effectiveModel } from '../../../shared/models';
 // the envelope on someone's desk. Hire / Decline (Let go / Keep) are the same decisions as the phone's and the
 // console's, with a note the CEO reads. Deciding closes it, so the person's reaction plays out in front of you.
 
-export function Interview({ requestId }: { requestId: string }) {
+/** `onClose` replaces closing the 3D office's overlay (the dashboard opens this as a dialog of its own). */
+export function Interview({ requestId, onClose = closeOverlay }: { requestId: string; onClose?: () => void }) {
   const req = useStore((s) => s.requests.find((r) => r.id === requestId));
   const repo = useStore((s) => (req ? s.repos.find((r) => r.id === req.repoId) : undefined));
   const settings = useStore((s) => s.settings);
@@ -26,16 +27,16 @@ export function Interview({ requestId }: { requestId: string }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
-      closeOverlay();
+      onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  }, [onClose]);
 
   const company = settings.companyName || 'cubefarm';
   if (!req) {
     return (
-      <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
+      <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
         <div className="doc" role="dialog" aria-label="Team change">
           <div className="doc-head">
             <span>✻ {company} · personnel</span>
@@ -43,7 +44,7 @@ export function Interview({ requestId }: { requestId: string }) {
           <p>This team change no longer exists.</p>
           <div className="doc-actions">
             <span className="spacer" />
-            <button className="btn btn-small" onClick={closeOverlay}>
+            <button className="btn btn-small" onClick={onClose}>
               Close
             </button>
           </div>
@@ -65,14 +66,14 @@ export function Interview({ requestId }: { requestId: string }) {
     try {
       if (yes) await api.approveRequest(req.id, { ...(hire ? hireOverrides(req, setup) : {}), note: note.trim() });
       else await api.rejectRequest(req.id, note.trim());
-      closeOverlay();
+      onClose();
     } catch {
       setBusy(false); // api() already toasted why
     }
   };
 
   return (
-    <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
+    <div className="overlay interview-overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={`doc ${hire ? '' : 'doc-letgo'}`} role="dialog" aria-label={hire ? `Setting up ${name}` : `Letting ${req.name} go`}>
         <div className="doc-head">
           <span>✻ {company} · personnel</span>
@@ -86,7 +87,7 @@ export function Interview({ requestId }: { requestId: string }) {
             <h2 className="doc-title">{hire ? name : `Let ${req.name} go?`}</h2>
             <div className="muted">{hire ? `Joining ${floor}` : `On ${floor}`}</div>
           </div>
-          <button className="panel-x" onClick={closeOverlay} aria-label="Close">
+          <button className="panel-x" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
@@ -139,7 +140,7 @@ export function Interview({ requestId }: { requestId: string }) {
           <div className="doc-actions">
             {req.note && <span className="muted small">Your note: “{req.note}”</span>}
             <span className="spacer" />
-            <button className="btn btn-small" onClick={closeOverlay}>
+            <button className="btn btn-small" onClick={onClose}>
               Close
             </button>
           </div>
