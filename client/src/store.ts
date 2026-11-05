@@ -15,12 +15,14 @@ import { alarm, audioUnlocked, chirp, cue } from './ui/sfx';
 import { claimVoice } from './ui/voiceClaim';
 import { speakable } from './ui/voiceQueue';
 import { recentQaRecord, rememberQa } from './qaRecord';
-import { emitMerge, mergeBursts } from './world/confetti';
-import { takeEmote, takePing, takePose, takeRoster } from './world/presence/presenceState';
-import { gongForMerge } from './world/gongRunner';
-import { ROOF } from './world/layout';
-import { emitReward } from './world/decor/rewards';
-import type { SnackId } from './world/fridge';
+import { emitMerge, emitReward, mergeGong, roster, visitor } from './effects';
+import { mergeBursts } from './merges';
+
+/** The roof's floor number (world/layout.ts ROOF). */
+const ROOF = -1;
+
+/** A snack from the fridge (world/fridge.ts SNACKS). */
+export type SnackId = 'overclock' | 'sparkling' | 'coldbrew' | 'mate' | 'pizza' | 'protein' | 'cheese' | 'chocolate';
 
 export type Agent = Omit<AgentView, 'log'>;
 
@@ -354,7 +356,7 @@ export const useStore = create<State>((set, get) => ({
           const merged = mergeBursts(live, before, next, qaFor, Object.values(get().agents));
           // A merge on the player's floor sends its author running to bang the gong (or it bangs by itself) and the
           // floor celebrates; anywhere else it's the chime.
-          if (merged.map((b) => gongForMerge(b, covered)).includes('absent') && cues) cue('merged');
+          if (merged.map((b) => mergeGong.ask(b, covered).includes(true)).includes(false) && cues) cue('merged');
           bursts.push(...merged);
           repos = [...repos.filter((r) => r.id !== next.id), next];
         }
@@ -525,19 +527,16 @@ export const useStore = create<State>((set, get) => ({
         // This tab shows it only while it's hidden (notifications.ts); a visible office already chimes and toasts.
         showDesktopNote(ev.note, get().settings.notify?.channels.desktop !== false);
         break;
-      // Presence: the list is state; poses, emotes and pings go straight to the 3D view (world/presence/presence.ts).
+      // Presence: the list is state; poses, emotes and pings go straight to the 3D view (effects.ts, to
+      // world/presence/presenceState.ts), and are dropped when nothing draws them.
       case 'visitors':
         set({ visitors: ev.visitors });
-        takeRoster(ev, get().floor);
+        roster.emit(ev, get().floor);
         break;
       case 'visitorPose':
-        takePose(ev, get().floor);
-        break;
       case 'visitorEmote':
-        takeEmote(ev);
-        break;
       case 'visitorPing':
-        takePing(ev);
+        visitor.emit(ev, get().floor);
         break;
       case 'progress':
         set({ progress: ev.progress });

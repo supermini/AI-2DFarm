@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PullInfo, QaView } from '../../../shared/types';
-import { mergeAuthor } from './confetti';
+import { mergeAuthor } from '../merges';
 import { SIT_SECONDS } from './body';
 import { BEATS, REACH_MS, RUN_SPEED, createRuns, elsewhere, nextBeat, nextJob, planGong, runOf, startRun, takenOver, timedOut, type GongJob, type GongRuns } from './gongRun';
 import { GONG_GAP_MS } from './gongRules';

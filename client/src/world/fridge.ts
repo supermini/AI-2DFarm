@@ -5,7 +5,10 @@
 
 // ---------- the snacks ----------
 
-export type SnackId = 'overclock' | 'sparkling' | 'coldbrew' | 'mate' | 'pizza' | 'protein' | 'cheese' | 'chocolate';
+import type { SnackId } from '../store';
+
+// The ids live with the store (its held snack), which doesn't import world/.
+export type { SnackId };
 
 /** A snack's sounds (toys/sipping.ts plays them), by name. */
 export type SnackCue = 'pssht' | 'twist' | 'rustle' | 'peel' | 'slurp' | 'chomp' | 'snap' | 'nom' | 'munch' | 'chew' | 'fizz' | 'mm' | 'gulp' | 'glug' | 'ahh' | 'crunch';

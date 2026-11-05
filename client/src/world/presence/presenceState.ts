@@ -5,6 +5,7 @@
 
 import { EMOTE_EMOJI, FLOOR_CAP } from '../../../../shared/presence';
 import type { EmoteId, PresenceEvent, ServerEvent, VisitorHeld, VisitorPose } from '../../../../shared/types';
+import { roster, visitor } from '../../effects';
 import { sendWs, wsOpens, wsTraffic } from '../../net';
 import { HALF_D, SPAWN } from '../layout';
 import { EMOTE_MS, RateMeter, heldKey, newClock, poseTime, pruneSamples, pushSample, renderDelay, sampleAt, shouldSend, type PoseClock, type Sample } from './presenceMath';
@@ -91,7 +92,7 @@ export const remoteOf = (id: string) => remotes.get(id);
 export const activePings = (): readonly Ping[] => pings;
 export const myLastEmote = () => myEmote;
 
-// ---------- from the server (store.ts apply) ----------
+// ---------- from the server (store.ts apply, through effects.ts) ----------
 
 /** The office's list of visitors changed: someone arrived, left, changed floors or renamed. */
 export function takeRoster(ev: Extract<ServerEvent, { type: 'visitors' }>, myFloor: number) {
@@ -158,6 +159,14 @@ export function takePing(ev: Extract<ServerEvent, { type: 'visitorPing' }>) {
   const r = remotes.get(ev.id);
   addPing({ name: r?.name ?? 'Someone', color: r?.color ?? '#ffd166', x: ev.x, y: ev.y, z: ev.z, label: ev.label, mine: false });
 }
+
+// The store hands them over through effects.ts; the roster is sticky, so one sent before this loaded still arrives.
+roster.on((ev, floor) => takeRoster(ev, floor));
+visitor.on((ev, floor) => {
+  if (ev.type === 'visitorPose') takePose(ev, floor);
+  else if (ev.type === 'visitorEmote') takeEmote(ev);
+  else takePing(ev);
+});
 
 /** This tab moved to another floor: everyone here is placed afresh from the poses the server sends on arrival. */
 export function setFloorHere(f: number) {

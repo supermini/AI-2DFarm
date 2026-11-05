@@ -9,8 +9,8 @@ import { requestSnapshot } from './net';
 import { EMPTY_OPS } from './ops';
 import { useStore } from './store';
 import { CHUNK_MS, clockTime, createClock, DEFAULT_SPEED, nextFetch, parsePresence, seekClock, touchPresence, withPlaying, withSpeed, type Presence, type ReplayClock } from './replayClock';
-import { setGongVolume } from './world/gongState';
-import { setReplayTime } from './world/sky/useDayTime';
+import { gongVolume, replayTime } from './effects';
+import { setReplayMoment } from './officeTime';
 import { applyRepoPatch, isFrame, legacyAgent, legacyRequest, type JournalDayView, type JournalEvent, type JournalFrame, type JournalLine, type JournalMark } from '../../shared/journal';
 import type { WorldSnapshot } from '../../shared/types';
 
@@ -125,7 +125,7 @@ function tick() {
   const now = real();
   const t = clockTime(clock, now);
   while (cursor < lines.length && lines[cursor].t <= t) applyLine(lines[cursor++], 'play');
-  setReplayTime(t);
+  showMoment(t);
   const ended = t >= clock.to;
   if (ended && clock.playing) clock = withPlaying(clock, false, now);
   const phase = useReplay.getState().phase;
@@ -170,11 +170,17 @@ async function load(t: number) {
     if (lines.length && lines[0].t > t) at = lines[0].t;
     while (cursor < lines.length && lines[cursor].t <= at) applyLine(lines[cursor++], 'seek');
     clock = withPlaying(seekClock(clock, at, real()), playing, real());
-    setReplayTime(at);
+    showMoment(at);
     useReplay.setState({ phase: playing ? 'playing' : 'paused', time: at, applied });
   } catch (err) {
     if (my === gen) fail(err);
   }
+}
+
+/** The moment on screen: the office's clocks (officeTime.ts) and the sky (effects.ts, world/sky/useDayTime.ts). */
+function showMoment(at: number | null) {
+  setReplayMoment(at);
+  replayTime.emit(at);
 }
 
 /** Starts the time-lapse over [from, to]: the office shows the recorded day until stopReplay (or Esc). */
@@ -184,7 +190,7 @@ export async function startReplay(opts: { from: number; to: number; label?: stri
   store.openOverlay(null);
   store.setReplaying(true);
   const mine = ++session;
-  setGongVolume(GONG_LEVEL);
+  gongVolume.emit(GONG_LEVEL);
   const speed = opts.speed ?? useReplay.getState().speed;
   clock = createClock(opts.from, opts.to, speed, real());
   lines = [];
@@ -218,8 +224,8 @@ export function stopReplay() {
   lines = [];
   cursor = 0;
   fetching = false;
-  setReplayTime(null);
-  setGongVolume(1);
+  showMoment(null);
+  gongVolume.emit(1);
   useReplay.setState({ phase: 'off', marks: [], error: null });
   requestSnapshot(); // before the flag drops, so no live event lands on the replayed state
   useStore.getState().setReplaying(false);
@@ -234,7 +240,7 @@ export function seekReplay(t: number) {
     while (cursor < lines.length && lines[cursor].t <= target) applyLine(lines[cursor++], 'seek');
     clock = seekClock(clock, target, real());
     if (target < clock.to && useReplay.getState().phase === 'ended') clock = withPlaying(clock, true, real());
-    setReplayTime(target);
+    showMoment(target);
     useReplay.setState({ time: target, applied, phase: clock.playing ? 'playing' : 'paused' });
     return;
   }
