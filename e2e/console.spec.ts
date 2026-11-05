@@ -1,33 +1,34 @@
-import { MANAGER_DESK } from '../client/src/world/layout';
-import { enterOffice, expect, phoneButton, startAt, test, type SavedView } from './helpers';
+import { expect, openDashboard, test } from './helpers';
 
-// The manager's console at the manager's desk.
+// What was the manager's console: Settings' tabs.
 
-// In the manager's office, just in front of the desk, looking down at the computer (-Z is north).
-const AT_DESK: SavedView = { floor: 0, x: MANAGER_DESK.x, z: MANAGER_DESK.z + MANAGER_DESK.d / 2 + 0.8, yaw: 0, pitch: -0.6 };
-
-test("the manager's console opens with E at its desk and closes with Esc", async ({ page }) => {
-  await startAt(page, AT_DESK);
-  await enterOffice(page);
-  await expect(page.getByText("Open the manager's console")).toBeVisible(); // the crosshair hint
-  await page.keyboard.press('e');
-  const panel = page.getByText(/Manager's console/); // the panel's title; the hint and help text say "manager's"
-  await expect(panel).toBeVisible();
-  await page.keyboard.press('Escape');
-  await expect(panel).toBeHidden();
-  await expect(phoneButton(page)).toBeVisible();
-});
-
-test('the Team tab adds agents of one kind, and Settings sizes the teams', async ({ page }) => {
-  await startAt(page, AT_DESK);
-  await enterOffice(page);
-  await page.keyboard.press('e');
-  await page.getByRole('tab', { name: /Team/ }).click();
+test('Settings → Team adds agents of one kind, and Office sizes the teams', async ({ page }) => {
+  await openDashboard(page, '/#/settings/team');
   await expect(page.getByRole('button', { name: '+ Agent' }).first()).toBeVisible();
-  await expect(page.getByRole('button', { name: /QA tester|Developer/ })).toHaveCount(0);
-  await page.getByRole('tab', { name: /Settings/ }).click();
-  await expect(page.getByLabel('Most agents per floor')).toHaveValue('10');
+  await expect(page.getByRole('main').getByRole('button', { name: /QA tester|Developer/ })).toHaveCount(0);
+  await page.getByRole('tab', { name: /Office/ }).click();
+  await expect(page.getByRole('spinbutton', { name: 'Most agents per floor' })).toHaveValue('10');
   const scaling = page.getByRole('radiogroup', { name: 'Team changes from the CEO' });
   await expect(scaling.getByRole('radio')).toHaveCount(2);
   await expect(scaling.getByRole('radio').first()).toBeChecked(); // I approve each one
+});
+
+test('every Settings tab opens', async ({ page }) => {
+  await openDashboard(page, '/#/settings/floors');
+  const tabs = page.getByRole('tablist', { name: 'Settings' }).getByRole('tab');
+  await expect(tabs).toHaveCount(8);
+  for (let i = 0; i < 8; i++) {
+    await tabs.nth(i).click();
+    await expect(tabs.nth(i)).toHaveAttribute('aria-selected', 'true');
+  }
+});
+
+test('the merge chime is off until asked for, and this browser remembers it', async ({ page }) => {
+  await openDashboard(page, '/#/settings/notifications');
+  const chime = page.getByRole('checkbox', { name: /chime when a PR merges/ });
+  await expect(chime).not.toBeChecked();
+  await chime.check();
+  await page.reload();
+  await expect(chime).toBeChecked();
+  await chime.uncheck();
 });
