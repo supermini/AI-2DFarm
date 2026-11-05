@@ -14,6 +14,8 @@ import { ManagerConsole } from './ManagerConsole';
 import { Panel } from './Panel';
 import { Phone3D } from './Phone3D';
 import { TerminalView } from './TerminalView';
+import { LookEditor } from './LookEditor';
+import { followAgent } from '../world/camera/rig';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 import { CHATTER_LEVELS, SOUND_GROUPS, type ChatterLevel, type SoundGroup } from './audioPrefs';
 import type { DayMode } from '../world/sky/time';
@@ -428,7 +430,7 @@ export function Overlays() {
   if (!overlay) return null;
   switch (overlay.kind) {
     case 'terminal':
-      return overlay.agentId === CEO_ID ? <ManagerConsole initialTab="ceo" /> : <TerminalView agentId={overlay.agentId} />;
+      return overlay.agentId === CEO_ID ? <ManagerConsole initialTab="ceo" /> : <TerminalView agentId={overlay.agentId} onFollow={followAgent} lookEditor={(a) => <LookEditor agent={a} />} />;
     case 'phone':
       return <Phone3D tab={overlay.tab} requestId={overlay.requestId} />;
     case 'kanban':
