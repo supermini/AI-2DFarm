@@ -154,7 +154,7 @@ function ShotsTab({ item }: TabCtx) {
 
 function AppTab({ item }: TabCtx) {
   const { repo, pr } = item;
-  if (pr.state !== 'OPEN') return <p className="muted">{pr.state === 'MERGED' ? `This PR has merged, so it has no preview of its own any more. The floor's app on ${repo.defaultBranch} is in the 3D office and the Developer board.` : 'This PR is closed, so it has no preview.'}</p>;
+  if (pr.state !== 'OPEN') return <p className="muted">{pr.state === 'MERGED' ? `This PR has merged, so it has no preview of its own any more. The floor's app on ${repo.defaultBranch} is on the Developer board (View app).` : 'This PR is closed, so it has no preview.'}</p>;
   return <AppViewer embedded repoId={repo.id} pr={pr.number} />;
 }
 
