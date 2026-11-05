@@ -1,48 +1,16 @@
-// Merge confetti, the pure side: which PRs just merged, whose desk the burst goes over, and the
-// event the store fires for MergeConfetti.tsx. Nothing is queued: a merge nobody is listening for is dropped.
-import type { AgentView, PullInfo, QaView, RepoView } from '../../../shared/types';
+// Merge confetti's 3D side: when a burst plays, and the office's hearing of merges (effects.ts): MergeConfetti.tsx
+// and the dog listen, and the gong run (gongRunner.ts) answers whether its floor's gong takes one. Nothing is queued:
+// a merge nobody is listening for is dropped. Which PRs merged is the pure merges.ts.
+import { mergeGong } from '../effects';
+import { gongForMerge } from './gongRunner';
 
-// Moved to ../qaRecord so the store doesn't import from world/.
+// Moved to ../qaRecord and ../merges so the store doesn't import from world/.
 export { recentQaRecord, rememberQa } from '../qaRecord';
+export { mergeAuthor, mergeBursts, newlyMerged, type MergeBurst } from '../merges';
+export { emitMerge, onMerge } from '../effects';
 
-export interface MergeBurst {
-  repoId: string;
-  prNumber: number;
-  /** The agent whose desk gets the burst; null sends it over the floor's Kanban board. */
-  agentId: string | null;
-}
-
-type Author = Pick<AgentView, 'id' | 'name' | 'role' | 'repoId'>;
-
-/** PRs that were open before this repo update and are merged in it. */
-export function newlyMerged(before: PullInfo[] | undefined, after: PullInfo[]): PullInfo[] {
-  const wasOpen = new Set(before?.filter((p) => p.state === 'OPEN').map((p) => p.number));
-  return after.filter((p) => p.state === 'MERGED' && wasOpen.has(p.number));
-}
-
-const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-
-/**
- * Who wrote a merged PR: the QA record's author if they're still on the floor, else the agent whose name
- * matches the head branch (`swarm/issue-<n>-<name>`, any case), else nobody.
- */
-export function mergeAuthor(repoId: string, pr: Pick<PullInfo, 'headRefName'>, qa: QaView | undefined, agents: Author[]): string | null {
-  const team = agents.filter((a) => a.repoId === repoId && a.role !== 'ceo');
-  if (qa?.devAgentId && team.some((a) => a.id === qa.devAgentId)) return qa.devAgentId;
-  const m = /^swarm\/issue-\d+-(.+)$/i.exec(pr.headRefName);
-  if (!m) return null;
-  const name = slug(m[1]);
-  return team.find((a) => slug(a.name) === name)?.id ?? null;
-}
-
-/**
- * The bursts for one `repo` event. `live` is false until the first snapshot, so page loads and
- * reconnects (which arrive as snapshots) never replay old merges.
- */
-export function mergeBursts(live: boolean, before: RepoView | undefined, after: RepoView, qaFor: (prNumber: number) => QaView | undefined, agents: Author[]): MergeBurst[] {
-  if (!live) return [];
-  return newlyMerged(before?.pulls, after.pulls).map((p) => ({ repoId: after.id, prNumber: p.number, agentId: mergeAuthor(after.id, p, qaFor(p.number), agents) }));
-}
+// The gong hears merges here: OfficeFloor.tsx loads this with Gong.tsx.
+mergeGong.on((b, covered) => gongForMerge(b, covered) !== 'absent');
 
 /**
  * What a burst starting now is: flying confetti, a soft glow that fades in and out where it would fly (with reduced
@@ -54,16 +22,3 @@ export const burstKind = (o: { hidden: boolean; covered: boolean; reducedMotion:
 
 /** Whether a flying burst (coins, confetti) may start now: not hidden, not covered, and not with reduced motion. */
 export const canBurst = (o: { hidden: boolean; covered: boolean; reducedMotion: boolean }) => burstKind(o) === 'confetti';
-
-// ---------- the event ----------
-
-const listeners = new Set<(b: MergeBurst) => void>();
-
-export function onMerge(fn: (b: MergeBurst) => void) {
-  listeners.add(fn);
-  return () => void listeners.delete(fn);
-}
-
-export function emitMerge(b: MergeBurst) {
-  for (const fn of listeners) fn(b);
-}

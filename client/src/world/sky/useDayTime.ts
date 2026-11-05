@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useFrame, type RootState } from '@react-three/fiber';
 import { create } from 'zustand';
 import { DAY_MODES, dayPhase, DEFAULT_DAY_MODE, parseDaytimeParam, parseDayMode, type DayMode } from './time';
+import { replayTime } from '../../effects';
 import { replayMoment, setReplayMoment } from '../../officeTime';
 
 // The office's shared time of day. Things that move with it read `dayTime.t` in their useFrame (DayClock
@@ -74,6 +75,9 @@ export function setReplayTime(at: number | null) {
     publish();
   }
 }
+
+// The time-lapse sends it through effects.ts (sticky, so a replay running before this loaded still shows).
+replayTime.on(setReplayTime);
 
 type SkyFrame = (state: RootState, delta: number) => void;
 const followers = new Set<{ current: SkyFrame }>();

@@ -1,3 +1,4 @@
+import { gongVolume } from '../effects';
 import { gong as boom } from '../ui/sfx';
 import { celebrating, createGong, strike, type Strike } from './gongRules';
 
@@ -12,6 +13,9 @@ let volume = 1;
 export function setGongVolume(level: number) {
   volume = level;
 }
+
+// The time-lapse sets it through effects.ts (sticky, so a replay running before this loaded still counts).
+gongVolume.on(setGongVolume);
 
 /** Gong.tsx says which floor's gong is on screen (null when it goes). */
 export function setGongHere(repoId: string | null) {

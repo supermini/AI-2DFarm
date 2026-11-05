@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { PullInfo, QaView, RepoView } from '../../../shared/types';
-import { burstKind, canBurst, emitMerge, mergeAuthor, mergeBursts, newlyMerged, onMerge } from './confetti';
+
+// The gong run needs a browser; here it only answers whether its floor's gong is on screen.
+vi.mock('./gongRunner', () => ({ gongForMerge: vi.fn((b: { repoId: string }) => (b.repoId === 'o/here' ? 'solo' : 'absent')) }));
+
+const { burstKind, canBurst, emitMerge, mergeAuthor, mergeBursts, newlyMerged, onMerge } = await import('./confetti');
+const { mergeGong } = await import('../effects');
 import { recentQaRecord, rememberQa } from '../qaRecord';
 
 const pr = (number: number, state: PullInfo['state'], headRefName = `swarm/issue-${number}-ada`) => ({ number, state, headRefName }) as PullInfo;
@@ -88,5 +93,12 @@ describe('merge event', () => {
     off();
     emitMerge({ repoId: 'o/r', prNumber: 2, agentId: null });
     expect(got).toEqual([1]);
+  });
+});
+
+describe('the gong hearing merges', () => {
+  it('takes a merge only when its floor’s gong is on screen', () => {
+    expect(mergeGong.ask({ repoId: 'o/here', prNumber: 1, agentId: null }, false)).toEqual([true]);
+    expect(mergeGong.ask({ repoId: 'o/away', prNumber: 2, agentId: null }, false)).toEqual([false]);
   });
 });
