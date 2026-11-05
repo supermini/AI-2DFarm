@@ -45,6 +45,25 @@ const STAGES: [keyof Pipeline, string, string][] = [
   ['needsYou', '⚠️', 'Needs you'],
 ];
 
+/** A floor's pipeline as a strip of counts; the Company tab's floors and the developer board's top. */
+export function PipelineStrip({ p, floor }: { p: Pipeline; floor: number }) {
+  return (
+    <div className="pk-pipeline" role="list" aria-label={`Floor ${floor} pipeline`}>
+      {STAGES.map(([k, icon, label]) => (
+        <div key={k} role="listitem" className={`pk-stage ${p[k] ? '' : 'pk-stage-zero'} ${k === 'needsYou' && p[k] ? 'pk-stage-hot' : ''}`}>
+          <span className="pk-stage-n">
+            <span className="pk-stage-icon" aria-hidden>
+              {icon}
+            </span>
+            {p[k]}
+          </span>
+          <span className="pk-stage-label">{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function Banners() {
   const connected = useStore((s) => s.connected);
   const loaded = useStore((s) => s.loaded);
@@ -115,19 +134,7 @@ export function Company({ go, banners = true }: { go: (tab: PocketTab, repoId?: 
               <div className="muted small pk-ellipsis">{repo.summary || repo.description || repo.fullName}</div>
             </div>
           </div>
-          <div className="pk-pipeline" role="list" aria-label={`Floor ${repo.floor} pipeline`}>
-            {STAGES.map(([k, icon, label]) => (
-              <div key={k} role="listitem" className={`pk-stage ${p[k] ? '' : 'pk-stage-zero'} ${k === 'needsYou' && p[k] ? 'pk-stage-hot' : ''}`}>
-                <span className="pk-stage-n">
-                  <span className="pk-stage-icon" aria-hidden>
-                    {icon}
-                  </span>
-                  {p[k]}
-                </span>
-                <span className="pk-stage-label">{label}</span>
-              </div>
-            ))}
-          </div>
+          <PipelineStrip p={p} floor={repo.floor} />
           <div className="pk-floor-foot small">
             <span className="muted">
               👥 {team} · {busy} busy · 📋 {p.backlog} in backlog

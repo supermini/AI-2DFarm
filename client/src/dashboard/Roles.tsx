@@ -4,7 +4,6 @@
 import { qaKey, useStore } from '../store';
 import { type PullInfo, type QaView, type RepoView } from '../../../shared/types';
 import { qaCardNote } from '../qaCard';
-import { KanbanView } from '../ui/KanbanView';
 import { NotifySettings } from '../ui/NotifySettings';
 import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
@@ -14,6 +13,7 @@ import { setMode } from '../pocket/mode';
 import { Board } from '../pocket/Pocket';
 import { Team } from '../pocket/PocketTeam';
 import { CeoPanel } from './CeoPanel';
+import { DevBoard } from './DevBoard';
 import { Drawer } from './Drawer';
 import { MetricsPanel } from './MetricsPanel';
 import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
@@ -59,19 +59,14 @@ export function DevScreen({ floor, view, go }: { floor: number | null; view: Dev
     <div className="dash-dev">
       <Chips className="dash-chips-pad" label="Developer view" items={views} on={view} pick={(v) => go({ role: 'dev', floor, view: v })} />
       {floor !== null && !repo && <p className="muted pk-page">There's no floor {floor}. Pick another floor above.</p>}
-      {view === 'board' && (floor === null || repo) && (
+      {view === 'board' && repo && <DevBoard key={repo.id} repo={repo} />}
+      {view === 'board' && floor === null && (
         <div className="dash-dev-split">
           <div className="dash-dev-board">
-            {repo ? (
-              <div className="pk-page">
-                <KanbanView key={repo.id} repoId={repo.id} embedded />
-              </div>
-            ) : (
-              <Board repoId={null} pick={(id) => go({ role: 'dev', floor: repos.find((r) => r.id === id)?.floor ?? null, view })} />
-            )}
+            <Board repoId={null} pick={(id) => go({ role: 'dev', floor: repos.find((r) => r.id === id)?.floor ?? null, view })} />
           </div>
           <div className="dash-dev-team">
-            <Team focusRepo={repo?.id ?? null} />
+            <Team focusRepo={null} />
           </div>
         </div>
       )}
