@@ -15,20 +15,19 @@ const qaRec = (n: number, status: QaStatus): QaView => ({
 
 const prCard = (n: number, status?: QaStatus): KanbanCard => ({ key: `pr-${n}`, number: n, prNumber: n, title: `PR ${n}`, qa: status ? qaRec(n, status) : undefined });
 
-/** Records what the flow did; `yes` answers the busy question, `start` the dependency one. */
-function fakeIo({ yes = true, start = true } = {}) {
+/** Records what the flow did; `start` answers the dependency question. */
+function fakeIo({ start = true } = {}) {
   const calls: unknown[][] = [];
   const io: DropIo = {
     assign: async (...a) => void calls.push(['assign', ...a]),
     sendToQa: async (...a) => void calls.push(['qa', ...a]),
-    askBusy: async (...a) => (calls.push(['askBusy', ...a]), yes),
     askBlocked: async (...a) => (calls.push(['askBlocked', ...a]), start),
     refuse: (...a) => void calls.push(['refuse', ...a]),
   };
   return { io, calls };
 }
 
-const run = async (action: DropAction, card: KanbanCard, opts?: { yes?: boolean; start?: boolean }) => {
+const run = async (action: DropAction, card: KanbanCard, opts?: { start?: boolean }) => {
   const { io, calls } = fakeIo(opts);
   await runDrop(action, card, agent(), io);
   return calls;
@@ -57,32 +56,9 @@ describe('runDrop', () => {
     ]);
   });
 
-  it('asks before giving a busy agent an issue', async () => {
-    expect(await run({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9' }, issueCard(3))).toEqual([
-      ['askBusy', 'Ada', 'working on #9', '#3'],
-      ['assign', 'ada', 3, false],
-    ]);
-  });
-
-  it('does nothing after a "no" to the busy question, not even the dependency one', async () => {
-    const action: DropAction = { kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9', waits: [1] };
-    expect(await run(action, issueCard(3), { yes: false })).toEqual([['askBusy', 'Ada', 'working on #9', '#3']]);
-  });
-
-  it('after a "yes" to the busy question still asks the dependency one', async () => {
-    const action: DropAction = { kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9', waits: [1] };
-    expect(await run(action, issueCard(3), { start: false })).toEqual([
-      ['askBusy', 'Ada', 'working on #9', '#3'],
-      ['askBlocked', 3, [1], 'Ada'],
-      ['assign', 'ada', 3, true],
-    ]);
-  });
-
-  it('a busy agent and a PR: QA after the yes', async () => {
-    expect(await run({ kind: 'confirm-busy', agentId: 'ada', doing: 'testing PR #2' }, prCard(7))).toEqual([
-      ['askBusy', 'Ada', 'testing PR #2', 'PR #7'],
-      ['qa', 7, 'ada'],
-    ]);
+  it('tells the manager a busy agent cannot take it, and calls nothing: the office would refuse', async () => {
+    expect(await run({ kind: 'busy', agentId: 'ada', doing: 'working on #9' }, issueCard(3))).toEqual([['refuse', '#3', 'Ada', 'busy, working on #9']]);
+    expect(await run({ kind: 'busy', agentId: 'ada', doing: 'testing PR #2' }, prCard(7))).toEqual([['refuse', 'PR #7', 'Ada', 'busy, testing PR #2']]);
   });
 
   it('says why it refused', async () => {
@@ -121,7 +97,7 @@ describe('hints', () => {
     expect(dropHint({ kind: 'assign', agentId: 'a', issue: 1 })).toBe('go');
     expect(dropHint({ kind: 'qa', agentId: 'a', pr: 1 })).toBe('go');
     expect(dropHint({ kind: 'blocked', waits: [1] })).toBe('ask');
-    expect(dropHint({ kind: 'confirm-busy', agentId: 'a', doing: 'busy' })).toBe('ask');
+    expect(dropHint({ kind: 'busy', agentId: 'a', doing: 'busy' })).toBe('no');
     expect(dropHint({ kind: 'none', reason: 'merged' })).toBe('no');
   });
 
@@ -129,7 +105,7 @@ describe('hints', () => {
     expect(pickHint({ kind: 'assign', agentId: 'a', issue: 1 })).toBe('free');
     expect(pickHint({ kind: 'qa', agentId: 'a', pr: 1 })).toBe('free, to test');
     expect(pickHint({ kind: 'blocked', waits: [1, 2] })).toBe('free · waits for #1, #2');
-    expect(pickHint({ kind: 'confirm-busy', agentId: 'a', doing: 'working on #9' })).toBe('busy · working on #9');
+    expect(pickHint({ kind: 'busy', agentId: 'a', doing: 'working on #9' })).toBe('busy · working on #9');
     expect(pickHint({ kind: 'none', reason: 'waiting for sign-in' })).toBe('waiting for sign-in');
   });
 });

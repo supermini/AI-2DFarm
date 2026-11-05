@@ -65,15 +65,15 @@ describe('backlog issues', () => {
 
   it('asks first when the agent is busy', () => {
     const working = agent({ status: 'working', task: 'issue', issueNumber: 12 });
-    expect(dropAction(issueCard(3), 'backlog', working, ctx())).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #12' });
+    expect(dropAction(issueCard(3), 'backlog', working, ctx())).toEqual({ kind: 'busy', agentId: 'ada', doing: 'working on #12' });
     const preparing = agent({ status: 'preparing', task: 'issue', issueNumber: 12 });
-    expect(dropAction(issueCard(3), 'backlog', preparing, ctx())).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #12' });
+    expect(dropAction(issueCard(3), 'backlog', preparing, ctx())).toEqual({ kind: 'busy', agentId: 'ada', doing: 'working on #12' });
   });
 
   it('says what a busy agent is doing, as the 3D desk does', () => {
-    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: 'qa', issueNumber: null, prNumber: 7 }), ctx())).toMatchObject({ kind: 'confirm-busy', doing: 'testing PR #7' });
-    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: 'fix', issueNumber: null, prNumber: 7 }), ctx())).toMatchObject({ kind: 'confirm-busy', doing: 'fixing PR #7' });
-    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: null, issueNumber: null, prNumber: null }), ctx())).toMatchObject({ kind: 'confirm-busy', doing: 'busy' });
+    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: 'qa', issueNumber: null, prNumber: 7 }), ctx())).toMatchObject({ kind: 'busy', doing: 'testing PR #7' });
+    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: 'fix', issueNumber: null, prNumber: 7 }), ctx())).toMatchObject({ kind: 'busy', doing: 'fixing PR #7' });
+    expect(dropAction(issueCard(3), 'backlog', agent({ status: 'working', task: null, issueNumber: null, prNumber: null }), ctx())).toMatchObject({ kind: 'busy', doing: 'busy' });
   });
 
   it('blocks an issue that still waits on open ones', () => {
@@ -87,10 +87,10 @@ describe('backlog issues', () => {
     expect(dropAction(issueCard(2), 'backlog', agent(), ctx(issues))).toEqual({ kind: 'assign', agentId: 'ada', issue: 2 });
   });
 
-  it('asks the busy question first and keeps the blockers for the dependency question after it', () => {
+  it('says busy before it looks at the dependencies', () => {
     const issues = [{ number: 1, body: '' }, { number: 2, body: 'Depends on #1' }];
     const busy = agent({ status: 'working', task: 'issue', issueNumber: 9 });
-    expect(dropAction(issueCard(2), 'backlog', busy, ctx(issues))).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'working on #9', waits: [1] });
+    expect(dropAction(issueCard(2), 'backlog', busy, ctx(issues))).toEqual({ kind: 'busy', agentId: 'ada', doing: 'working on #9' });
   });
 });
 
@@ -107,7 +107,7 @@ describe('PRs', () => {
 
   it('asks first when the agent is busy', () => {
     for (const status of BUSY) {
-      expect(dropAction(prCard(5), 'qa', agent({ status }), ctx())).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'busy' });
+      expect(dropAction(prCard(5), 'qa', agent({ status }), ctx())).toEqual({ kind: 'busy', agentId: 'ada', doing: 'busy' });
     }
   });
 
@@ -122,7 +122,7 @@ describe('PRs', () => {
       expect(dropAction(prCard(5, 'passed'), 'ready', agent({ status }), ctx())).toEqual({ kind: 'qa', agentId: 'ada', pr: 5 });
     }
     for (const status of BUSY) {
-      expect(dropAction(prCard(5, 'passed'), 'ready', agent({ status }), ctx())).toEqual({ kind: 'confirm-busy', agentId: 'ada', doing: 'busy' });
+      expect(dropAction(prCard(5, 'passed'), 'ready', agent({ status }), ctx())).toEqual({ kind: 'busy', agentId: 'ada', doing: 'busy' });
     }
   });
 });
@@ -137,7 +137,7 @@ describe('every column × agent status', () => {
   };
   const expected = (column: keyof KanbanColumns, status: Agent['status']): DropAction['kind'] => {
     if (column === 'merged' || column === 'progress') return 'none';
-    return status === 'preparing' || status === 'working' ? 'confirm-busy' : column === 'backlog' ? 'assign' : 'qa';
+    return status === 'preparing' || status === 'working' ? 'busy' : column === 'backlog' ? 'assign' : 'qa';
   };
 
   it.each(STATUSES.flatMap((status) => (['backlog', 'progress', 'qa', 'ready', 'merged'] as const).map((column) => [column, status] as const)))('%s on a %s agent', (column, status) => {

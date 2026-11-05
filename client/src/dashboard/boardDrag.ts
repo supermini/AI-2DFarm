@@ -11,8 +11,6 @@ import type { DropAction } from './dnd';
 export interface DropIo {
   assign(agentId: string, issue: number, waitForDeps: boolean): Promise<unknown>;
   sendToQa(pr: number, agentId: string): Promise<unknown>;
-  /** "Ada is working on #9. Give them #3 anyway?" */
-  askBusy(name: string, doing: string, card: string): Promise<boolean>;
   /** The dependency question: true starts now, false waits for the blockers. */
   askBlocked(issue: number, waits: number[], name: string): Promise<boolean>;
   refuse(card: string, name: string, reason: string): void;
@@ -20,10 +18,6 @@ export interface DropIo {
 
 /** Carries out a dropAction for `card` and `agent`. A "wait" answer still assigns, with waitForDeps: the office then refuses while a blocker is open and says why. */
 export async function runDrop(action: DropAction, card: KanbanCard, agent: Pick<Agent, 'id' | 'name'>, io: DropIo): Promise<void> {
-  const assignAsking = async (waits: number[] | undefined) => {
-    const start = waits?.length ? await io.askBlocked(card.number, waits, agent.name) : true;
-    await io.assign(agent.id, card.number, !start);
-  };
   switch (action.kind) {
     case 'assign':
       await io.assign(action.agentId, action.issue, false);
@@ -32,12 +26,10 @@ export async function runDrop(action: DropAction, card: KanbanCard, agent: Pick<
       await io.sendToQa(action.pr, action.agentId);
       return;
     case 'blocked':
-      await assignAsking(action.waits);
+      await io.assign(agent.id, card.number, !(await io.askBlocked(card.number, action.waits, agent.name)));
       return;
-    case 'confirm-busy':
-      if (!(await io.askBusy(agent.name, action.doing, cardLabel(card)))) return;
-      if (card.prNumber != null) await io.sendToQa(card.prNumber, agent.id);
-      else await assignAsking(action.waits);
+    case 'busy':
+      io.refuse(cardLabel(card), agent.name, `busy, ${action.doing}`);
       return;
     case 'none':
       io.refuse(cardLabel(card), agent.name, action.reason);
@@ -51,7 +43,7 @@ export function handOutKeys(cols: KanbanColumns): Set<string> {
 
 /** How an agent chip looks under a dragged card: takes it, asks first, or won't. */
 export function dropHint(a: DropAction): 'go' | 'ask' | 'no' {
-  if (a.kind === 'none') return 'no';
+  if (a.kind === 'none' || a.kind === 'busy') return 'no';
   return a.kind === 'assign' || a.kind === 'qa' ? 'go' : 'ask';
 }
 
@@ -64,7 +56,7 @@ export function pickHint(a: DropAction): string {
       return 'free, to test';
     case 'blocked':
       return `free · waits for #${a.waits.join(', #')}`;
-    case 'confirm-busy':
+    case 'busy':
       return `busy · ${a.doing}`;
     case 'none':
       return a.reason;

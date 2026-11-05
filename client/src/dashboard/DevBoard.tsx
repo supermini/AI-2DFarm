@@ -27,7 +27,6 @@ function dropIo(repoId: string): DropIo {
   return {
     assign: (agentId, issue, waitForDeps) => api.assign(agentId, issue, undefined, waitForDeps),
     sendToQa: (pr, agentId) => api.sendToQa(repoId, pr, agentId),
-    askBusy: (name, doing, card) => confirmDialog({ tone: 'warn', title: `${name} is busy`, body: `${name} is ${doing}. Give them ${card} anyway?`, confirm: `Give ${card} to ${name}` }),
     askBlocked: (issue, waits, name) =>
       confirmDialog({
         tone: 'warn',

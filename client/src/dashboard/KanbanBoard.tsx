@@ -7,7 +7,7 @@ import type { Agent, KanbanCard, KanbanColumns } from '../store';
 import type { RepoView } from '../../../shared/types';
 import { CardFoot, KanbanToolbar, useCardActions } from '../ui/KanbanView';
 import { CardView } from '../ui/CardView';
-import { menuMove, pickHint } from './boardDrag';
+import { dropHint, menuMove, pickHint } from './boardDrag';
 import { dropAction, type DropContext } from './dnd';
 import { Drawer } from './Drawer';
 import './dev.css';
@@ -35,7 +35,7 @@ function AssignMenu({ card, col, team, ctx, pick }: { card: KanbanCard; col: Col
   const button = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const rows = team.map((agent) => ({ agent, action: dropAction(card, col, agent, ctx) }));
-  const enabled = rows.map((r) => r.action.kind !== 'none');
+  const enabled = rows.map((r) => dropHint(r.action) !== 'no');
   const focusItem = (i: number) => menu.current?.querySelectorAll<HTMLElement>('[role="menuitem"]')[i]?.focus();
   useEffect(() => {
     if (open) focusItem(menuMove('Home', 0, enabled));
@@ -76,9 +76,9 @@ function AssignMenu({ card, col, team, ctx, pick }: { card: KanbanCard; col: Col
               role="menuitem"
               tabIndex={-1}
               className="dev-menu-item"
-              aria-disabled={action.kind === 'none'}
+              aria-disabled={dropHint(action) === 'no'}
               onClick={() => {
-                if (action.kind === 'none') return;
+                if (dropHint(action) === 'no') return;
                 close();
                 pick(agent);
               }}
