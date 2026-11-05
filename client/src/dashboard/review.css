@@ -225,6 +225,69 @@
   border-radius: 8px;
   background: #f1f3f5;
 }
+/* the App tab: the PR theatre at the detail's full width */
+.rv-detail-wide {
+  max-width: none;
+}
+.app-embedded {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: clamp(540px, 76vh, 940px);
+}
+.app-embedded-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.app-embedded .compare-sides {
+  min-height: 0;
+}
+@media (max-width: 900px) {
+  .app-embedded {
+    height: 960px; /* main over the PR, each side with room to read */
+  }
+}
+/* the Actions tab */
+.rv-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.rv-hint {
+  margin: 0;
+}
+.rv-auto {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: baseline;
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+}
+.rv-auto-on {
+  background: #e6f9ec;
+}
+.rv-act-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rv-act-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+}
+.rv-act-list .btn {
+  flex: none;
+  min-width: 180px;
+}
 @media (max-width: 1024px) {
   .rv {
     grid-template-columns: minmax(240px, 38%) minmax(0, 1fr);

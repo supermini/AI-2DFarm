@@ -4,7 +4,7 @@ import type { PullInfo, QaStatus, QaView, RepoView } from '../../../shared/types
 // The store (for qaKey) pulls in sounds, which need a browser.
 vi.mock('../ui/sfx', () => ({ alarm: vi.fn(), audioUnlocked: () => false, chirp: vi.fn(), cue: vi.fn() }));
 const { qaKey } = await import('../store');
-const { findReviewItem, reviewAgents, reviewCounts, reviewQueue } = await import('./review');
+const { autoMergeNote, findReviewItem, reviewActions, reviewAgents, reviewCounts, reviewQueue } = await import('./review');
 type ReviewGroup = import('./review').ReviewGroup;
 
 const NOW = new Date('2026-05-10T15:00:00').getTime();
@@ -135,5 +135,54 @@ describe('reviewAgents', () => {
     expect(reviewAgents(undefined, pr, [agent('x', { prNumber: 5 }), agent('t', { prNumber: 5, task: 'qa' })] as never).dev?.id).toBe('x');
     expect(reviewAgents(undefined, pr, [agent('y', { branch: 'fix-5' })] as never).dev?.id).toBe('y');
     expect(reviewAgents(undefined, pr, [agent('t', { prNumber: 5, task: 'qa' })] as never)).toEqual({ dev: null, qa: null });
+  });
+});
+
+describe('reviewActions / autoMergeNote', () => {
+  const item = (status: QaStatus | null, prOver: Partial<PullInfo> = {}) => {
+    const r = repo(1, [pull(1, prOver)]);
+    const qa = status ? Object.fromEntries([rec(r, 1, status)]) : {};
+    return reviewQueue([r], qa, NOW).flatMap((s) => s.items)[0] ?? { repo: r, pr: r.pulls[0], qa: undefined, group: 'merged' as const };
+  };
+
+  it('a PR QA has not seen can be sent to QA, or closed', () => {
+    expect(reviewActions(item(null))).toMatchObject({ retryQa: 'Send to QA', sendBack: false, merge: null, close: true });
+  });
+
+  it('a PR being tested or fixed offers only Close, and says why', () => {
+    for (const st of ['testing', 'fixing', 'queued'] as QaStatus[]) {
+      const a = reviewActions(item(st));
+      expect(a).toMatchObject({ retryQa: null, sendBack: false, merge: null, close: true });
+      expect(a.hint).toBeTruthy();
+    }
+  });
+
+  it('a failed PR can be retried, sent back or closed, not merged', () => {
+    expect(reviewActions(item('failed'))).toMatchObject({ retryQa: 'Retry QA', sendBack: true, merge: null, close: true });
+  });
+
+  it('a PR that needs the manager can also be merged anyway', () => {
+    expect(reviewActions(item('needs-human'))).toMatchObject({ retryQa: 'Retry QA', sendBack: true, merge: { label: 'Merge anyway', disabled: null }, close: true });
+  });
+
+  it('a passed PR merges (a draft cannot), and can be retested', () => {
+    expect(reviewActions(item('passed'))).toMatchObject({ retryQa: 'Retry QA', sendBack: false, merge: { label: 'Merge', disabled: null }, close: true });
+    expect(reviewActions(item('passed', { isDraft: true })).merge).toMatchObject({ label: 'Merge', disabled: expect.stringContaining('draft') });
+  });
+
+  it('a merged PR has no actions', () => {
+    const a = reviewActions(item('passed', { state: 'MERGED', mergedAt: TODAY }));
+    expect(a).toMatchObject({ retryQa: null, sendBack: false, merge: null, close: false });
+    expect(a.hint).toMatch(/merged/i);
+  });
+
+  it('says what auto-merge will do with this PR', () => {
+    expect(autoMergeNote(false, item('passed'))).toMatch(/off/i);
+    expect(autoMergeNote(true, item('testing'))).toMatch(/once QA passes/i);
+    expect(autoMergeNote(true, item('passed'))).toMatch(/on its own|by itself/i);
+    expect(autoMergeNote(true, item('passed', { checks: 'pending' }))).toMatch(/checks/i);
+    expect(autoMergeNote(true, item('passed', { checks: 'failing' }))).toMatch(/CI/);
+    expect(autoMergeNote(true, item('passed', { mergeable: 'CONFLICTING' }))).toMatch(/conflict/i);
+    expect(autoMergeNote(true, item('passed', { state: 'MERGED', mergedAt: TODAY }))).toBeNull();
   });
 });

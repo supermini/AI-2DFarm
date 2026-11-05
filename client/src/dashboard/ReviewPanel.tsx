@@ -1,17 +1,21 @@
 // The reviewer's screen: the PR queue on the left (grouped by where each PR stands, review.ts) and the picked PR on the
 // right, as tabs. Report: QA's summary, its checks and a link to the PR comment. Screenshots: QA's shots, click to
-// enlarge. Below 760px it is the queue, then the detail with a way back. Later tabs (the PR's app, its actions) join
-// DETAIL_TABS.
+// enlarge. App: the PR theatre (ui/AppViewer.tsx, embedded) with main, the PR or both side by side; it is only mounted
+// while its tab is up, so leaving the tab lets the idle PR preview stop. Actions: retest, send back, merge, close, and
+// the floor's auto-merge state. Below 760px it is the queue, then the detail with a way back.
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import type { PullInfo, QaCheck, QaView } from '../../../shared/types';
 import { qaCardNote } from '../qaCard';
 import { recentQaRecord } from '../qaRecord';
-import { qaKey, useStore, type Agent } from '../store';
+import { qaKey, useStore, type Agent, type KanbanCard } from '../store';
 import { QA_BADGE, qaShotUrl } from '../ui/channels';
 import { topDialog, useDialogFocus } from '../ui/dialogFocus';
+import { api } from '../api';
+import { AppViewer } from '../ui/AppViewer';
+import { useCardActions } from '../ui/KanbanView';
 import { Markdown } from '../ui/Markdown';
 import { StatusPill } from '../ui/TerminalView';
-import { findReviewItem, reviewAgents, reviewCounts, reviewQueue, type ReviewItem } from './review';
+import { autoMergeNote, findReviewItem, reviewActions, reviewAgents, reviewCounts, reviewQueue, type ReviewItem } from './review';
 import type { Route } from './route';
 import './review.css';
 
@@ -55,6 +59,8 @@ interface DetailTab {
 const DETAIL_TABS: DetailTab[] = [
   { key: 'report', label: () => '📋 Report', render: (c) => <ReportTab {...c} /> },
   { key: 'shots', label: (i) => `🖼 Screenshots${i.qa?.shots?.length ? ` (${i.qa.shots.length})` : ''}`, render: (c) => <ShotsTab {...c} /> },
+  { key: 'app', label: () => '🖥 App', render: (c) => <AppTab {...c} /> },
+  { key: 'actions', label: () => '⚡ Actions', render: (c) => <ActionsTab {...c} /> },
 ];
 
 function ReportTab({ item }: TabCtx) {
@@ -146,6 +152,66 @@ function ShotsTab({ item }: TabCtx) {
   );
 }
 
+function AppTab({ item }: TabCtx) {
+  const { repo, pr } = item;
+  if (pr.state !== 'OPEN') return <p className="muted">{pr.state === 'MERGED' ? `This PR has merged, so it has no preview of its own any more. The floor's app on ${repo.defaultBranch} is on the Developer board (View app).` : 'This PR is closed, so it has no preview.'}</p>;
+  return <AppViewer embedded repoId={repo.id} pr={pr.number} />;
+}
+
+function ActionsTab({ item }: TabCtx) {
+  const { repo, pr, qa } = item;
+  const actions = useCardActions(repo.id, repo.defaultBranch);
+  const a = reviewActions(item);
+  const auto = autoMergeNote(repo.autoMerge, item);
+  // The Kanban board's actions work on its cards; this is the same PR as one.
+  const card: KanbanCard = { key: qaKey(repo.id, pr.number), number: pr.number, title: pr.title, prNumber: pr.number, qa };
+  const busy = actions.pending === card.key;
+  return (
+    <div className="rv-actions">
+      {a.hint && <p className="muted rv-hint">{a.hint}</p>}
+      {auto && (
+        <p className={`rv-auto ${repo.autoMerge ? 'rv-auto-on' : ''}`} role="status">
+          <b>🔀 {repo.autoMerge ? 'Auto-merge on' : 'Auto-merge off'}</b> <span>{auto}</span>
+        </p>
+      )}
+      <ul className="rv-act-list">
+        {a.retryQa && (
+          <li>
+            <button className="btn btn-good" disabled={busy} onClick={() => void actions.act(card.key, () => api.sendToQa(repo.id, pr.number))}>
+              {a.retryQa === 'Retry QA' ? '🔁 Retry QA' : '🔍 Send to QA'}
+            </button>
+            <span className="muted small">{a.retryQa === 'Retry QA' ? 'Another QA round on the latest commit.' : 'Queues it for the next free agent.'}</span>
+          </li>
+        )}
+        {a.sendBack && (
+          <li>
+            <button className="btn" disabled={busy} onClick={() => void actions.sendBack(card)}>
+              🔧 Send back for a fix
+            </button>
+            <span className="muted small">Hands it to its author, or any free agent, with QA's findings and your note.</span>
+          </li>
+        )}
+        {a.merge && (
+          <li>
+            <button className={`btn ${a.merge.label === 'Merge' ? 'btn-good' : ''}`} disabled={busy || !!a.merge.disabled} onClick={() => void actions.merge(card)}>
+              {a.merge.label === 'Merge' ? '🎉 Merge' : '⚠️ Merge anyway'}
+            </button>
+            <span className="muted small">{a.merge.disabled ?? (a.merge.label === 'Merge' ? `Squash-merges it into ${repo.defaultBranch}.` : `QA hasn't passed it; you decide. Squash-merges it into ${repo.defaultBranch}.`)}</span>
+          </li>
+        )}
+        {a.close && (
+          <li>
+            <button className="btn btn-ghost" disabled={busy} onClick={() => void actions.closePr(card)}>
+              ✕ Close PR
+            </button>
+            <span className="muted small">Closes it without merging; its issue stays open.</span>
+          </li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
 /** One screenshot enlarged, with its caption and page. Esc closes, arrows step through the others. */
 function Lightbox({ src, caption, page, position, onStep, onClose }: { src: string; caption: string; page: string | null; position: string; onStep?: (d: -1 | 1) => void; onClose: () => void }) {
   const box = useRef<HTMLDivElement>(null);
@@ -202,7 +268,7 @@ function Detail({ item, agents, go, floor }: { item: ReviewItem; agents: Agent[]
   const active = DETAIL_TABS.find((t) => t.key === tab) ?? DETAIL_TABS[0];
   const base = useId();
   return (
-    <div className="rv-detail-in">
+    <div className={`rv-detail-in ${active.key === 'app' ? 'rv-detail-wide' : ''}`}>
       <button className="btn btn-small rv-back" onClick={() => go({ role: 'review', floor, pr: null })}>
         ← Queue
       </button>
