@@ -1,7 +1,9 @@
 import { useStore } from './store';
 import { restartExpected, shouldReload } from './officeUpdate';
 import type { ClientEvent, ServerEvent } from '../../shared/types';
-import { currentWatch } from './watch';
+import { currentWatch, dashboardWatch } from './watch';
+import { useMode } from './pocket/mode';
+import { shownAgents, useVisible } from './dashboard/visible';
 import { hitchWs } from './hitches';
 
 let retry = 0;
@@ -10,7 +12,10 @@ let sentWatch = '';
 
 /** Tells the office what this tab shows (watch.ts) whenever that changes, so it sends only the lines it needs. */
 function sendWatch() {
-  const watch = JSON.stringify({ type: 'lines', ...currentWatch(useStore.getState()) } satisfies ClientEvent);
+  const state = useStore.getState();
+  // The dashboard says what its screens show (dashboard/visible.ts); the 3D office, where the player stands.
+  const shown = useMode.getState().mode === 'dashboard' ? dashboardWatch({ ...state, floor: useVisible.getState().floor, shown: shownAgents(useVisible.getState()) }) : currentWatch(state);
+  const watch = JSON.stringify({ type: 'lines', ...shown } satisfies ClientEvent);
   if (socket?.readyState !== WebSocket.OPEN || watch === sentWatch) return;
   sentWatch = watch;
   socket.send(watch);
@@ -70,6 +75,8 @@ export function connect() {
   if (!watching) {
     watching = true;
     useStore.subscribe(sendWatch);
+    useVisible.subscribe(sendWatch);
+    useMode.subscribe(sendWatch);
   }
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${proto}://${location.host}/ws`);

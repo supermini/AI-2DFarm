@@ -3,10 +3,13 @@
 // bottom tab bar on phones; a top bar with the floor picker and the office's banners; the screen the hash route names
 // (route.ts); a right drawer for the context item. A fresh office shows the setup wizard first.
 import { Suspense, useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../store';
 import { Banners, PocketOverlay, Toasts } from '../pocket/Pocket';
 import { SetupWizard } from '../ui/SetupWizard';
 import { CeoScreen, DevScreen, MetricsScreen, ReviewScreen, SettingsScreen } from './Roles';
+import { roleBadges } from './badges';
+import { useShowFloor } from './visible';
 import { ROLES, roleRoute, routeFloor, withFloor, type Role, type Route } from './route';
 import { useRoute } from './useRoute';
 
@@ -68,8 +71,13 @@ export default function Shell() {
   useEffect(() => {
     if (onFloor !== undefined) setFloor(onFloor);
   }, [onFloor]);
-  // Unread counts per role belong here (issue #7); none yet.
-  const badges: Partial<Record<Role, number>> = {};
+  // The floor on screen is the one the office sends terminal lines for (watch.ts): the picker drives it through the route.
+  useShowFloor(onFloor ?? null);
+  const badges = useStore(
+    useShallow((s) =>
+      roleBadges({ repos: s.repos, qa: s.qa, requests: s.requests, messages: s.messages, readAt: s.phoneReadAt, agents: s.agents, alarms: s.ops.alarms, doctor: s.doctor }),
+    ),
+  );
 
   useEffect(() => {
     document.title = `${company || 'cubefarm'} · dashboard`;
@@ -83,7 +91,7 @@ export default function Shell() {
   };
   const roleButton = (role: Role, cls: string) => {
     const [icon, label] = ROLE_LOOK[role];
-    const n = badges[role] ?? 0;
+    const n = badges[role];
     const on = route.role === role;
     return (
       <button key={role} className={`${cls} ${on ? `${cls}-on` : ''}`} aria-current={on ? 'page' : undefined} title={label} onClick={() => navigate(roleRoute(role, floor))}>
