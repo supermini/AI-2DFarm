@@ -13,11 +13,12 @@ import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
 import { Chat } from '../ui/Phone';
 import { setMode } from '../pocket/mode';
-import { Board, Company, type PocketTab } from '../pocket/Pocket';
+import { Board } from '../pocket/Pocket';
 import { Approvals } from '../pocket/PocketApprovals';
 import { Team } from '../pocket/PocketTeam';
 import { Drawer } from './Drawer';
-import { routeFromTab, SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
+import { MetricsPanel } from './MetricsPanel';
+import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
 
@@ -192,13 +193,8 @@ export function ReviewScreen({ floor, pr, go }: { floor: number | null; pr: numb
 
 // ---------- metrics ----------
 
-export function MetricsScreen({ go }: { go: Go }) {
-  const repos = useStore((s) => s.repos);
-  const fromPocket = (tab: PocketTab, repoId?: string) => {
-    const r = routeFromTab(tab, repos.find((x) => x.id === repoId)?.floor ?? null);
-    if (r) go(r);
-  };
-  return <Company go={fromPocket} banners={false} />;
+export function MetricsScreen() {
+  return <MetricsPanel />;
 }
 
 // ---------- settings ----------

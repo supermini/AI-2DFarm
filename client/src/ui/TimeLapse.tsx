@@ -66,8 +66,8 @@ function DayRow({ day, speed }: { day: JournalDayView; speed: number }) {
   );
 }
 
-/** The manager's console tab. */
-export function TimeLapseTab() {
+/** The manager's console tab; `dashboard`: in the 2D dashboard, where the replay plays on its screens. */
+export function TimeLapseTab({ dashboard = false }: { dashboard?: boolean }) {
   const demo = useStore((s) => s.demo);
   const [days, setDays] = useState<JournalDayView[] | null>(null);
   const [speed, setSpeed] = useState(useReplay.getState().speed);
@@ -98,7 +98,11 @@ export function TimeLapseTab() {
     <div className="tab-grid">
       <div>
         <h3 className="section">📼 Time-lapse</h3>
-        <p className="muted small">Watch the office's day again, right here in the 3D office: people at work and on their errands, stickies moving on the whiteboard, every merge's gong and confetti.</p>
+        <p className="muted small">
+          {dashboard
+            ? "Watch the office's day again, right here in the dashboard: the board, the team, the PRs and the numbers as they were."
+            : "Watch the office's day again, right here in the 3D office: people at work and on their errands, stickies moving on the whiteboard, every merge's gong and confetti."}
+        </p>
         <div className="card tl-since">
           <div className="row">
             <div className="grow">
@@ -131,8 +135,16 @@ export function TimeLapseTab() {
         </div>
         <h3>While it plays</h3>
         <p className="small">
-          The office shows the recorded moment instead of the live one, down to the sky and the clocks. Assigning, messaging and merging are off. Drag along the timeline to jump: 🎉 merges, 🔴 PRs that needed you, 🆕 new issues.{' '}
-          <kbd>Esc</kbd> frees the mouse, and <kbd>Esc</kbd> again goes straight back to the live office.
+          The {dashboard ? 'dashboard' : 'office'} shows the recorded moment instead of the live one{dashboard ? '' : ', down to the sky and the clocks'}. Assigning, messaging and merging are off. Drag along the timeline to jump: 🎉 merges, 🔴 PRs that needed you, 🆕 new issues.{' '}
+          {dashboard ? (
+            <>
+              <kbd>Esc</kbd> goes back to live.
+            </>
+          ) : (
+            <>
+              <kbd>Esc</kbd> frees the mouse, and <kbd>Esc</kbd> again goes straight back to the live office.
+            </>
+          )}
         </p>
         <p className="muted small">The journal keeps 7 days (at most about 200 MB) in the office's folder. Terminal output, settings and keys are never written to it.</p>
         {demo && (
