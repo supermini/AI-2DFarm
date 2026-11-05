@@ -1,12 +1,11 @@
+// The look editor: a live 3D preview and the picks that style an agent. Apart from AgentSettings.tsx so the rest of
+// an agent's setup can be used where there is no 3D scene.
 import { useId, useMemo } from 'react';
 import type { Agent } from '../store';
 import { ACCENT_COLORS, BUILDS, FACIAL_HAIR, GLASSES, HAIR_COLORS, HAIR_STYLES, HEADWEAR, OUTFITS, SKIN_TONES, type AgentStyle, type HairStyle, type Outfit } from '../../../shared/looks';
 import { TALL_HAIR, appearanceFor, randomStyle } from '../world/appearance';
 import { LookPreview } from '../world/LookPreview';
 import { save } from './AgentSettings';
-
-// The look editor: a live 3D preview and the picks that style an agent. Apart from AgentSettings.tsx so the rest of
-// an agent's setup can be used where there is no 3D scene.
 
 const HAIR_LABEL: Record<HairStyle, string> = {
   crop: 'Short crop',
