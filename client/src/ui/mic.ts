@@ -500,7 +500,8 @@ function step(ev: HandsFreeEvent) {
     hfTimer = setTimeout(() => {
       hfTimer = null;
       step({ type: 'tick', now: performance.now(), room: room() });
-    }, Math.max(0, (hf.kind === 'chime' ? hf.until : 0) - performance.now()));
+      // A millisecond over: a timer can fire a hair early, and a tick before `until` waits for a next tick that never comes.
+    }, Math.max(0, (hf.kind === 'chime' ? hf.until : 0) - performance.now()) + 1);
   }
   if (r.effect === 'open') {
     const phone = phoneTarget();
