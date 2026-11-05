@@ -17,7 +17,7 @@ function AgentChip({ agent, card }: { agent?: Agent; card: KanbanCard }) {
   );
 }
 
-export function IssueForm({ repoId, agents, onDone }: { repoId: string; agents: Agent[]; onDone?: () => void }) {
+export function IssueForm({ repoId, agents, onDone, autoFocus = true }: { repoId: string; agents: Agent[]; onDone?: () => void; autoFocus?: boolean }) {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [assignTo, setAssignTo] = useState('');
@@ -43,7 +43,7 @@ export function IssueForm({ repoId, agents, onDone }: { repoId: string; agents: 
         }
       }}
     >
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Issue title, e.g. Add a dark mode toggle" aria-label="Issue title" autoFocus />
+      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Issue title, e.g. Add a dark mode toggle" aria-label="Issue title" autoFocus={autoFocus} />
       <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Describe what you want. Acceptance criteria help the agent who builds it and the one who tests it a lot." aria-label="Issue description" rows={5} />
       <div className="row">
         <select value={assignTo} onChange={(e) => setAssignTo(e.target.value)} aria-label="Who works on it">

@@ -1,23 +1,22 @@
 // The dashboard's screens, one per role, built from pocket mode's panels for now: the CEO (chat and approvals), the
 // developer (the board and the team), the reviewer (the floor's PRs; the real review panel comes later), metrics (each
 // floor's pipeline) and settings (the manager's console sections and this device).
-import { useEffect } from 'react';
 import { qaKey, useStore } from '../store';
-import { CEO_ID, type PullInfo, type QaView, type RepoView } from '../../../shared/types';
+import { type PullInfo, type QaView, type RepoView } from '../../../shared/types';
 import { qaCardNote } from '../qaCard';
 import { NotifySettings } from '../ui/NotifySettings';
 import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
 import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
-import { Chat } from '../ui/Phone';
 import { setMode } from '../pocket/mode';
-import { Board, Company, type PocketTab } from '../pocket/Pocket';
-import { Approvals } from '../pocket/PocketApprovals';
+import { Board } from '../pocket/Pocket';
 import { Team } from '../pocket/PocketTeam';
+import { CeoPanel } from './CeoPanel';
 import { DevBoard } from './DevBoard';
 import { Drawer } from './Drawer';
-import { routeFromTab, SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
+import { MetricsPanel } from './MetricsPanel';
+import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
 
@@ -44,35 +43,7 @@ function Chips<T extends string>({ items, on, pick, label, className }: { items:
 // ---------- CEO ----------
 
 export function CeoScreen({ pane, go }: { pane: CeoPane; go: Go }) {
-  const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'CEO');
-  // While the chat is on screen, new CEO messages don't toast (the store reads this as the phone's chat being open).
-  useEffect(() => {
-    const s = useStore.getState();
-    s.openOverlay({ kind: 'phone', tab: 'chat' });
-    return () => {
-      if (useStore.getState().overlay?.kind === 'phone') useStore.getState().openOverlay(null);
-    };
-  }, []);
-  return (
-    <div className="dash-ceo">
-      <Chips
-        className="dash-narrow-only dash-chips-pad"
-        label="CEO"
-        items={[
-          ['chat', `💬 ${ceoName}`],
-          ['approvals', '✋ Approvals'],
-        ]}
-        on={pane}
-        pick={(p) => go({ role: 'ceo', pane: p })}
-      />
-      <section className={`dash-ceo-chat ${pane === 'chat' ? '' : 'dash-pane-off'}`} aria-label={`Chat with ${ceoName}`}>
-        <Chat autoFocus={false} />
-      </section>
-      <section className={`dash-ceo-side ${pane === 'approvals' ? '' : 'dash-pane-off'}`} aria-label="Approvals">
-        <Approvals />
-      </section>
-    </div>
-  );
+  return <CeoPanel pane={pane} go={go} />;
 }
 
 // ---------- developer ----------
@@ -187,13 +158,8 @@ export function ReviewScreen({ floor, pr, go }: { floor: number | null; pr: numb
 
 // ---------- metrics ----------
 
-export function MetricsScreen({ go }: { go: Go }) {
-  const repos = useStore((s) => s.repos);
-  const fromPocket = (tab: PocketTab, repoId?: string) => {
-    const r = routeFromTab(tab, repos.find((x) => x.id === repoId)?.floor ?? null);
-    if (r) go(r);
-  };
-  return <Company go={fromPocket} banners={false} />;
+export function MetricsScreen() {
+  return <MetricsPanel />;
 }
 
 // ---------- settings ----------
