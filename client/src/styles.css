@@ -5169,6 +5169,13 @@ html[data-high-contrast] :is(button, a, input, select, textarea, summary, [tabin
 .dash-chips-pad {
   padding: 12px 12px 0;
 }
+/* Settings: the console's sections are wider than a phone-sized page; a wide table scrolls inside its card */
+.dash-settings {
+  max-width: 1200px;
+}
+.dash-settings .floor-card {
+  overflow-x: auto;
+}
 /* CEO: the chat beside the approvals; one at a time below 1024px */
 .dash-main-ceo {
   overflow: hidden;
