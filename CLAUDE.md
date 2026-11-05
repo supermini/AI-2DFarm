@@ -1,10 +1,12 @@
 # cubefarm
 
-A cartoon first-person 3D office (React Three Fiber) over a Node orchestrator that runs one coding-agent session
-(Claude Code, Codex or OpenCode) per agent, plus the CEO, working through GitHub issues. Agents are interchangeable (no
-roles: any free agent builds, tests or fixes) and each works on a machine of its own (docs/agents.md).
-This is the app the company runs on: a live office is running from this repo right now. README.md is the quick start; docs/how-it-works.md and CONTRIBUTING.md have the details.
-It ships on npm as `cubefarm` (`npx cubefarm`); it used to be called Office Swarm.
+A 2D dashboard (React, role screens for the CEO, developer, reviewer, metrics and settings) over a Node orchestrator that
+runs one coding-agent session (Claude Code, Codex or OpenCode) per agent, plus the CEO, working through GitHub issues.
+Agents are interchangeable (no roles: any free agent builds, tests or fixes) and each works on a machine of its own
+(docs/agents.md). This is a fork of leonvanzyl/cubefarm (upstream). It was a 3D office until the dashboard replaced it;
+the server stays close to upstream. README.md is the quick start; docs/how-it-works.md, docs/pocket.md and CONTRIBUTING.md
+have the details. The live office runs from the path in SAFETY, not from this checkout. This fork isn't published: the
+npm package `cubefarm` (`npx cubefarm`) is upstream's. It used to be called Office Swarm.
 
 ## SAFETY (read first)
 
@@ -61,7 +63,7 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
 - `config.ts`: `SWARM_PORT` (default 4317), `SWARM_HOST` (default 127.0.0.1; `npx cubefarm --host`), `SWARM_HOME` (default `~/.cubefarm`), `--demo`, state file, intervals,
   the default projects folder.
 - `swarm.ts`: the orchestrator. Floors, agents, scheduling/auto-assign, build → QA → fix → merge loop, team changes
-  (the CEO's `scale_team`, lobby approvals), CEO job queue, phone messages, persistence (`state.json` / `demo-state.json`), websocket fan-out (through
+  (the CEO's `scale_team`, team-change approvals), CEO job queue, phone messages, persistence (`state.json` / `demo-state.json`), websocket fan-out (through
   `outbox.ts`).
 - `outbox.ts`: what goes out on `/ws`: agents' and floors' changes batched on a 250 ms tick as patches of what
   changed, terminal lines only to the tabs that show them (`shared/watch.ts`), catch-ups when a tab's watch changes.
@@ -112,8 +114,9 @@ Server (`server/`, Node + Express 5 + ws, run by tsx in development; esbuild bun
 - `httpError.ts`: `HttpError(status, message)`.
 - `officeUpdate.ts`: the office's self-update: the drain decision, the launcher contract (IPC, `last-update.json`).
 - `pacing.ts`: pacing new work after Claude's usage warnings: the start/skip decision and the usage state.
-- `presence.ts`: shared presence: relays tabs' poses, emotes and pings on `/ws` to their floor (pure interest and rate
-  rules), never saved; `demoVisitors.ts` walks the demo's fake visitors. Names and limits in `shared/presence.ts`.
+- `presence.ts`: relays visitors' poses, emotes and pings between tabs on `/ws` (pure interest and rate rules), never
+  saved. It is the 3D office's visitors: the dashboard sends none, so it is idle. `demoVisitors.ts` walks the demo's fake
+  visitors. Names and limits in `shared/presence.ts`.
 - `voice.ts`: phone messages read aloud (docs/voice.md): the ElevenLabs key in `secrets.json`, voices, cached clips;
   `elevenlabs.ts` is its REST client. The words spoken come from `shared/speech.ts`. `secrets.ts`: that file's reads and merged writes.
 - `notifier.ts`: notifications (docs/pocket.md): the rate-limited fan-out to open tabs (desktop), Web Push and the chat
@@ -137,48 +140,41 @@ Shared (`shared/`, imported by both sides):
 - `issues.ts`: issue conventions (`swarm:skip`, `Depends on #N`, hold-up ranking).
 - `journal.ts`: the time-lapse journal's format and pure rules, for the server and the replay.
 - `watch.ts`: which terminal lines a tab gets: its floor, open panels, the workers list's latest lines.
-- `looks.ts`: the look editor's options and `cleanStyle` (an agent's `style`, checked on the server).
+- `looks.ts`: an agent's `style` (what the 3D office drew; the dashboard keeps it in the contract) and `cleanStyle` (checked on the server).
 
-Client (`client/`, Vite root; React 19, R3F, drei, zustand):
-- `src/world/`: the 3D building: floors, desks, characters (`appearance.ts`, `characterParts.ts`, `Figure.tsx`, `face.ts`), elevator,
-  whiteboard, player movement and collisions (`layout.ts`), canvas textures (`draw.ts`), `toys/` (Rapier physics),
-  where people can walk (`walkways.ts`: the walk grid, paths, named spots and steering, on the roomba's grid),
-  errands that get them up (`errands.ts`: the registry and who may go; `ErrandDirector.tsx` runs them), toy
-  errands (`toyErrands.ts`: hoops and catch, on `toys/npc.ts`, the toys' hands for people, aimed by `toys/npcAim.ts`),
-  comings and goings (`socials.ts`: new agents by elevator, leavers with a box, chats, visits, the CEO's stroll),
-  the time of day (`sky/time.ts`, `sky/useDayTime.ts`) and the city outside (`outside/`: the seeded layout in
-  `cityLayout.ts`, drawn by `City.tsx` in six instanced draw calls), the camera's other views (`camera/`: the
-  overview, the building view and the follow cam in `rig.ts`, pose maths in `cameraMath.ts`, the cutaway as global
-  clipping planes), the gamepad (`gamepad.ts`) and the graphics tiers (`gfx/`: Low/Medium/High/Auto in `quality.ts`
-  with Auto's governor, post-processing in a lazy chunk (`Effects.tsx`, `pipeline.ts`); a material blooms only if
-  `bloomMarks.ts` marks it), the other people viewing the office (`presence/`: visitors, pings, the profile),
-  holiday themes (`themes/`: which one is on from `shared/themes.ts`, their data and decoration slots in `themes.ts`
-  and `layout.ts`, each theme's scene in one lazy chunk loaded only while a theme is on; `?theme=` and `?date=` for QA).
-- `src/ui/`: HTML overlays: HUD, terminal (`LiveTerminal.tsx`: xterm.js on `/ws/term`), Kanban, manager's console,
-  phone (with its mini-games in `games/`: pure logic in `tetris.ts` / `snake.ts` / `pet.ts`), elevator panel, app
-  viewer, sounds (`sfx.ts`), key bindings (`keymap.ts`, pure; `controls.ts` keeps the player's own, and every
-  shortcut asks it, never a hard-coded key).
-- Accessibility (Settings → Accessibility, `ui/a11y.ts`, saved per browser through pure `a11yPrefs.ts`): captions
-  (`captions.ts`, rules in `captionRules.ts`; every sound `sfx.ts` records is offered to them), status colours and
-  shapes (`statusLook.ts`, shared by CSS and the canvases), motion comfort (call `reduceMotion()` before animating
-  the camera or anything non-essential), UI scale, readable font, high contrast. Dialogs use `dialogFocus.ts`
-  (focus in, trapped, returned); `announce()` speaks to screen readers; `FloorList.tsx` is the list view.
-- `src/pocket/`: pocket mode (docs/pocket.md), the 2D office for phones (`mode.ts` picks it; `App.tsx` loads it or the
-  3D `Office.tsx` lazily, so a phone never downloads three.js). `src/pwa.ts` registers the service worker and Web Push;
-  `src/notifications.ts` shows desktop notifications. `ui/Panel.tsx` is the panel, apart from `Overlays.tsx` (3D).
-- `src/photo/`: photo mode and clips, lazy-loaded except `gate.ts` (on/frozen, the K and I keys, `__swarmPhoto`):
-  `PhotoScene.tsx` (its own camera; frozen, the frame loop stops and it draws on change), `post.ts` (filters and depth
-  of field on the finished picture), `recorder.ts` / `instantReplay.ts` (MediaRecorder; `webmRing.ts` keeps the last 15 s),
-  `PhotoPanel.tsx`, and pure `flight.ts`, `shots.ts`, `filters.ts`.
+Client (`client/`, Vite root; React 19, zustand; no 3D libraries: `noWorldImports.test.ts` keeps them out):
+- `src/App.tsx` and `main.tsx`: the entry. `App` lazy-loads `dashboard/Shell.tsx`, the whole dashboard, in its own chunk.
+- `src/dashboard/`: the 2D dashboard (docs/pocket.md). `Shell.tsx`: the rail of roles (CEO, Developer, Reviewer, Metrics,
+  Settings; the tab bar on phones), the top bar with the floor picker and activity feed, the banners, the screen the
+  route names, the right drawer, and the setup wizard on a fresh office. `route.ts` (pure): the hash routes (`#/ceo`,
+  `#/dev/<floor>[/terminals]`, `#/review/<floor>/<pr>`, `#/metrics`, `#/settings/<tab>`) and notifications' `?tab=`
+  links; `useRoute.ts` follows them. `Roles.tsx` holds the screens. `CeoPanel.tsx` (the CEO's chat and approvals,
+  `ceoTriage.ts`), `DevBoard.tsx` + `KanbanBoard.tsx` (one floor's board; drag with `dnd.ts` and `boardDrag.ts`),
+  `TerminalGrid.tsx` + `terminalTiles.ts` (up to six live terminals), `AgentDrawer.tsx` + `Drawer.tsx` (the agent's panel
+  in the right drawer), `ReviewPanel.tsx` + `review.ts` (the PR queue, QA's report and screenshots, the PR theatre),
+  `MetricsPanel.tsx` (Mission control and the time-lapse), `ActivityFeed.tsx`, `badges.ts` (role counts), `visible.ts`
+  (what's on screen, for the watch `watch.ts` sends). Styles: `ceo.css`, `dev.css`, `terminals.css`, `review.css`, `metrics.css`.
+- `src/pocket/`: the parts the dashboard reuses from pocket mode: `Pocket.tsx` (the pipeline strip, banners, toasts, the
+  board), `PocketApprovals.tsx` (team changes, stuck and passed PRs), `PocketTeam.tsx` (the team's status and actions),
+  and the pure `pocketData.ts`.
+- `src/ui/`: the panels the dashboard shows: `consoleSections.tsx` (the Settings tabs), `KanbanView.tsx`, `Phone.tsx` (the
+  CEO chat and hire requests), `Interview.tsx`, `TerminalView.tsx` and `LiveTerminal.tsx` (xterm.js on `/ws/term`),
+  `AppViewer.tsx` (the floor's app and the PR theatre), `MissionConsole.tsx`, `TimeLapse.tsx`, `SetupWizard.tsx`,
+  `NotifySettings.tsx`, `VoiceSettings.tsx`, `CloudSettings.tsx`, `AccessibilitySettings.tsx`, `Confirm.tsx`, and the
+  voice and microphone helpers (`voice*.ts`, `mic*.ts`, `handsFree.ts`). `sfx.ts` plays the sounds; `captions.ts`,
+  `captionRules.ts` and `statusLook.ts` (status colours and shapes) serve accessibility.
+  `keymap.ts` and `controls.ts` hold the key bindings that remain (the microphone's `V`): a shortcut asks `controls.ts`, never a hard-coded key.
+- Accessibility (Settings → Accessibility, `ui/a11y.ts`, saved per browser through pure `a11yPrefs.ts`): captions, status
+  colours and shapes, motion comfort (call `reduceMotion()` before animating anything non-essential), UI scale, readable
+  font, high contrast. Dialogs use `dialogFocus.ts` (focus in, trapped, returned); `announce()` speaks to screen readers.
 - `src/store.ts`: the zustand store; `apply(ServerEvent)` folds websocket events into UI state.
 - `src/api.ts`: REST calls; errors become toasts.
 - `src/net.ts`: the websocket connection with reconnect; it sends the tab's watch (`src/watch.ts`) as it changes.
-  `src/perf.tsx`: render pausing, adaptive DPR, `?stats` (and `window.__swarmStats` with a census of what's drawn).
-- `src/world/batch.ts` / `Batched.tsx`: a floor's repeated parts (Toon.tsx's boxes, people's `Piece`s) drawn as
-  instanced batches behind invisible stand-ins (`?batch=off` to compare). `src/world/paint/`: canvas textures
-  recorded here and painted in an OffscreenCanvas worker, with the canvas path as fallback (`?paint=main`).
+- `src/notifications.ts` shows desktop notifications; `src/pwa.ts` registers the service worker (the installable app) and
+  Web Push for this device.
 - `src/replay.ts`: the time-lapse: plays the journal through `store.apply(ev, 'play' | 'seek')` while live events
-  wait; `replayClock.ts` is its pure clock and "since I was last here", `ui/TimeLapse.tsx` its console tab and bar.
+  wait; `replayClock.ts` is its pure clock and "since I was last here", `ui/TimeLapse.tsx` its tab and bar.
+- Pure helpers: `qaCard.ts` (what needs the manager), `cards.ts`, `ops.ts`, `officeUpdate.ts`, `toolVerb.ts`, `qaRecord.ts`.
 
 ## Conventions
 
@@ -208,7 +204,7 @@ Client (`client/`, Vite root; React 19, R3F, drei, zustand):
 ## Tests
 
 - Vitest, `*.test.ts` next to the code, anywhere under `client/`, `server/`, `shared/` or `scripts/`
-  (e.g. `shared/issues.test.ts`, `client/src/world/layout.test.ts`, `server/ceo.test.ts`). Config: `vitest.config.ts`.
+  (e.g. `shared/issues.test.ts`, `client/src/dashboard/route.test.ts`, `server/ceo.test.ts`). Config: `vitest.config.ts`.
 - Test pure functions directly; extract logic into pure helpers rather than mocking. No network, no `gh`, no Claude
   sessions, no real `~/.cubefarm`: `npm test` already points `SWARM_HOME` at a temp folder and `SWARM_PORT` at 0.
 - Must pass on both CI runners (ubuntu + windows): don't hardcode `/` or `\` in expected paths.

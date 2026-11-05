@@ -33,16 +33,16 @@ Everything after the first `/` is the server's own name for the model. OpenCode 
 
 ## A floor's team
 
-Each floor (one repository) has its own team, up to **10 agents** by default (Settings → *Most agents per floor*, at most 15: the room has 15 desks). Agents stay on their floor and take that board's work.
+Each floor (one repository) has its own team, up to **10 agents** by default (Settings → Office → *Most agents per floor*, at most 15). Agents stay on their floor and take that board's work.
 
 The CEO never decides on new work: it files GitHub issues only when you ask (a brief when the project moves in, **Plan**, or a message), and the office refuses its `file_issue` in any other job. Its own reviews, onboarding and triage suggest work in its message to you instead.
 
-The **CEO** watches each floor's throughput (issues ready to start, pull requests waiting for QA or being fixed, idle agents, merges per hour) and sets the team's size with its `scale_team` tool, saying why. Settings → *Team changes* decides what happens next:
+The **CEO** watches each floor's throughput (issues ready to start, pull requests waiting for QA or being fixed, idle agents, merges per hour) and sets the team's size with its `scale_team` tool, saying why. Settings → Office → *Team changes from the CEO* decides what happens next:
 
-- **I approve each change** (the default): new agents wait in the lobby, on the chairs by the glass door. Press `E` on one to see who they'd be: the CEO's reason, and their provider, model and effort, which you can change before they're created. **Hire** creates the agent and its machine; they take the elevator up and get the welcome tour. A smaller team is an envelope on the desk of the agent the CEO picked to leave.
+- **I approve each change** (the default): new agents wait in the CEO's **Approvals** (`#/ceo/approvals`). Open one to see who they'd be: the CEO's reason, and their provider, model and effort, which you can change before they're created. **Hire** creates the agent and its machine, and they start on their floor's board. A smaller team shows as a let-go request for the agent the CEO picked to leave.
 - **Apply straight away**: within the floor's maximum, the change happens at once; idle agents leave first, and busy ones are left to finish.
 
-The phone and the manager's console show the same requests. You can always add or remove agents yourself (console → Team, or `E` on an empty desk).
+The phone and the dashboard show the same requests. You can always add or remove agents yourself (Settings → Team → New agent).
 
 ## Machines
 
@@ -60,7 +60,7 @@ Because every machine has its own clone, agents no longer queue behind one share
 
 Removing an agent removes its machine; uncommitted or unpushed work is saved to `<SWARM_HOME>/leftovers/` first. The office's sweeps delete finished branches in each machine's clone, and machines whose agents are gone.
 
-Agents from before machines keep their old desk until their current task is over, and move to a machine of their own at their next one. A session can only be resumed from the folder it ran in, so their fixes then start a fresh session.
+Agents from before machines keep their old workspace until their current task is over, and move to a machine of their own at their next one. A session can only be resumed from the folder it ran in, so their fixes then start a fresh session.
 
 ### Signing in
 
@@ -79,7 +79,7 @@ Other machines elsewhere (roadmap step 3) will get their own config folders (`CL
 
 ## Roadmap
 
-1. **Interchangeable agents** (done): no roles, titles or QA lab; any free agent takes any task; the CEO scales teams; lobby candidates with provider, model and effort.
+1. **Interchangeable agents** (done): no roles, titles or QA lab; any free agent takes any task; the CEO scales teams; candidates waiting for approval, with provider, model and effort.
 2. **Local machines** (done): an own clone and worktree per agent, its own temp folder and port.
 3. **Per-machine logins** (done for cloud agents: a sign-in check before each task, the coding agent's own sign-in in their terminal): own sign-in folders for other machines, a sign-in check in the office doctor.
 4. **Container machines**: [Docker Sandboxes](https://docs.docker.com/ai/sandboxes/) (`sbx`, microVMs, no Docker Desktop needed; Windows 11 needs the Hypervisor Platform feature), reaching the office at `host.docker.internal`.
