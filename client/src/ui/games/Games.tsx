@@ -134,7 +134,7 @@ function Launcher({ onGame }: { onGame: (g: GameId) => void }) {
   );
 }
 
-export function Games({ game, onGame }: { game: GameId | null; onGame: (g: GameId | null) => void }) {
+export function Games({ game, onGame }: { game: string | null; onGame: (g: string | null) => void }) {
   useGameKeys((e) => {
     if (!game || e.code !== 'Backspace') return false;
     onGame(null);
