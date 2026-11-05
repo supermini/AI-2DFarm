@@ -10,6 +10,7 @@ import './doctorProbe';
 import { eAction } from '../world/toys/sip';
 import { SNACKS } from '../world/fridge';
 import { stickyDrop } from '../world/boardHands';
+import { VisitorsList } from './VisitorsList';
 import { WorkersPanel } from './WorkersPanel';
 import { PresenceHud } from './PresenceHud';
 import { officeUpdateChip } from '../officeUpdate';
@@ -185,7 +186,7 @@ export function HUD() {
         <PhotoButton />
       </div>
 
-      <WorkersPanel />
+      <WorkersPanel visitors={<VisitorsList />} />
       <div className="hud-chips">
         <OfficeUpdateChip />
         <UsageChip />

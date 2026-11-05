@@ -14,6 +14,7 @@ import { CeoPanel } from './CeoPanel';
 import { DevBoard } from './DevBoard';
 import { MetricsPanel } from './MetricsPanel';
 import { ReviewPanel } from './ReviewPanel';
+import { TerminalGrid } from './TerminalGrid';
 import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
@@ -66,8 +67,7 @@ export function DevScreen({ floor, view, go }: { floor: number | null; view: Dev
           </div>
         </div>
       )}
-      {/* The terminals grid is a later issue: for now the team, each agent with its terminal. */}
-      {view === 'terminals' && (floor === null || repo) && <Team focusRepo={repo?.id ?? null} />}
+      {view === 'terminals' && (floor === null || repo) && <TerminalGrid key={repo?.id ?? 'all'} repoId={repo?.id ?? null} />}
     </div>
   );
 }

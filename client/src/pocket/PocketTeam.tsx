@@ -176,7 +176,9 @@ export function Team({ focusRepo }: { focusRepo: string | null }) {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const focus = useRef<HTMLElement>(null);
-  useEffect(() => focus.current?.scrollIntoView({ block: 'start' }), []);
+  useEffect(() => {
+    focus.current?.scrollIntoView({ block: 'start' }); // not returned: newer browsers' scrollIntoView returns a Promise, which React would take for a cleanup
+  }, []);
   return (
     <div className="pk-page">
       <CeoCard />

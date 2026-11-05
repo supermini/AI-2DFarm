@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '../store';
 import { Banners, PocketOverlay, Toasts } from '../pocket/Pocket';
+import { AgentDrawerHost } from './AgentDrawer';
 import { SetupWizard } from '../ui/SetupWizard';
 import { CeoScreen, DevScreen, MetricsScreen, ReviewScreen, SettingsScreen } from './Roles';
 import { ReplayBar } from '../ui/TimeLapse';
@@ -67,6 +68,7 @@ export default function Shell() {
   const setupDone = useStore((s) => s.settings.setupDone);
   const connected = useStore((s) => s.connected);
   const usage = useStore((s) => s.usage.state);
+  const terminalOpen = useStore((s) => s.overlay?.kind === 'terminal');
   // The floor picked last, kept while on a role without floors so the next one opens on it.
   const [floor, setFloor] = useState<number | null>(() => routeFloor(route) ?? null);
   const onFloor = routeFloor(route);
@@ -138,9 +140,9 @@ export default function Shell() {
       </nav>
       <Toasts />
       <ReplayBar />
-      <Suspense fallback={null}>
-        <PocketOverlay />
-      </Suspense>
+      {/* An agent opens in the drawer (AgentDrawer.tsx), not in pocket mode's modal panel. */}
+      <AgentDrawerHost />
+      <Suspense fallback={null}>{!terminalOpen && <PocketOverlay />}</Suspense>
       {loaded && !setupDone && <SetupWizard />}
     </div>
   );
