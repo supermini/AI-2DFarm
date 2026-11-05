@@ -1,9 +1,8 @@
 // The dashboard's screens, one per role, built from pocket mode's panels for now: the CEO (chat and approvals), the
 // developer (the board and the team), the reviewer (the floor's PRs; the real review panel comes later), metrics (each
 // floor's pipeline) and settings (the manager's console sections and this device).
-import { useEffect } from 'react';
 import { qaKey, useStore } from '../store';
-import { CEO_ID, type PullInfo, type QaView, type RepoView } from '../../../shared/types';
+import { type PullInfo, type QaView, type RepoView } from '../../../shared/types';
 import { qaCardNote } from '../qaCard';
 import { KanbanView } from '../ui/KanbanView';
 import { NotifySettings } from '../ui/NotifySettings';
@@ -11,11 +10,10 @@ import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
 import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
-import { Chat } from '../ui/Phone';
 import { setMode } from '../pocket/mode';
 import { Board, Company, type PocketTab } from '../pocket/Pocket';
-import { Approvals } from '../pocket/PocketApprovals';
 import { Team } from '../pocket/PocketTeam';
+import { CeoPanel } from './CeoPanel';
 import { Drawer } from './Drawer';
 import { routeFromTab, SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
@@ -44,35 +42,7 @@ function Chips<T extends string>({ items, on, pick, label, className }: { items:
 // ---------- CEO ----------
 
 export function CeoScreen({ pane, go }: { pane: CeoPane; go: Go }) {
-  const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'CEO');
-  // While the chat is on screen, new CEO messages don't toast (the store reads this as the phone's chat being open).
-  useEffect(() => {
-    const s = useStore.getState();
-    s.openOverlay({ kind: 'phone', tab: 'chat' });
-    return () => {
-      if (useStore.getState().overlay?.kind === 'phone') useStore.getState().openOverlay(null);
-    };
-  }, []);
-  return (
-    <div className="dash-ceo">
-      <Chips
-        className="dash-narrow-only dash-chips-pad"
-        label="CEO"
-        items={[
-          ['chat', `💬 ${ceoName}`],
-          ['approvals', '✋ Approvals'],
-        ]}
-        on={pane}
-        pick={(p) => go({ role: 'ceo', pane: p })}
-      />
-      <section className={`dash-ceo-chat ${pane === 'chat' ? '' : 'dash-pane-off'}`} aria-label={`Chat with ${ceoName}`}>
-        <Chat autoFocus={false} />
-      </section>
-      <section className={`dash-ceo-side ${pane === 'approvals' ? '' : 'dash-pane-off'}`} aria-label="Approvals">
-        <Approvals />
-      </section>
-    </div>
-  );
+  return <CeoPanel pane={pane} go={go} />;
 }
 
 // ---------- developer ----------
