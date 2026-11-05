@@ -7,7 +7,7 @@ import type { IssueInfo, PullInfo } from '../../../shared/types';
 import type { Agent, Focus, KanbanCard, KanbanColumns } from '../store';
 import { kanbanCapacity, kanbanNoteRect, KANBAN_KEYS } from './draw';
 import { BOARD } from './layout';
-import type { Col } from './stickies';
+import { bodyExcerpt, canPeel, cardLabel, type Col } from '../cards';
 
 /** KanbanBoard.tsx's canvas, in pixels. */
 export const BOARD_TEX = { w: 2560, h: Math.round((2560 * BOARD.h) / BOARD.w) };
@@ -43,18 +43,6 @@ export function noteAt(cols: KanbanColumns, u: number, v: number): (Slot & { car
   }
   return null;
 }
-
-/**
- * A sticky you may peel off and carry to an agent's desk: an issue in the Backlog (for them to build), or a PR in In QA
- * that the console would send to QA (never tested, or needing you) for them to test.
- */
-export function canPeel(col: Col, card: KanbanCard) {
-  if (col === 'backlog') return !card.prNumber;
-  return col === 'qa' && !!card.prNumber && !card.ghost && (!card.qa || card.qa.status === 'needs-human');
-}
-
-/** What the card's number reads like: "#12" or "PR #7". */
-export const cardLabel = (c: { number: number; pr?: boolean; prNumber?: number }) => `${c.pr || c.prNumber ? 'PR ' : ''}#${c.number}`;
 
 // ---------- putting a carried sticky down ----------
 
@@ -143,33 +131,5 @@ export function dependencyPairs(issues: readonly Pick<IssueInfo, 'number' | 'bod
 
 // ---------- reading a card ----------
 
-/** The card a card view is about, wherever it is now: by key, else the same issue or PR by number. */
-export function locateCard(cols: KanbanColumns, key: string, number: number, pr: boolean): (Slot & { card: KanbanCard }) | null {
-  let byNumber: (Slot & { card: KanbanCard }) | null = null;
-  for (const col of KANBAN_KEYS) {
-    const cards = cols[col];
-    for (let index = 0; index < cards.length; index++) {
-      const card = cards[index];
-      if (card.key === key) return { col, index, card };
-      if (!byNumber && card.number === number && !!card.prNumber === pr) byNumber = { col, index, card };
-    }
-  }
-  return byNumber;
-}
-
-/** The first lines of an issue's body, for the card view: at most `lines` non-blank lines and `chars` characters. */
-export function bodyExcerpt(body: string, lines = 8, chars = 600): { text: string; more: boolean } {
-  const all = (body ?? '').split(/\r?\n/);
-  const out: string[] = [];
-  let kept = 0;
-  let used = 0;
-  let i = 0;
-  for (; i < all.length && kept < lines && used < chars; i++) {
-    const line = all[i];
-    if (line.trim()) kept++;
-    out.push(used + line.length > chars ? `${line.slice(0, Math.max(0, chars - used)).trimEnd()}…` : line);
-    used += line.length + 1;
-  }
-  const more = all.slice(i).some((l) => l.trim()) || used > chars;
-  return { text: out.join('\n').trim(), more };
-}
+// Moved to ../cards so the HTML UI doesn't import from world/.
+export { bodyExcerpt, canPeel, cardLabel };

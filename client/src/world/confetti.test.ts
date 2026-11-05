@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PullInfo, QaView, RepoView } from '../../../shared/types';
-import { burstKind, canBurst, emitMerge, mergeAuthor, mergeBursts, newlyMerged, onMerge, recentQaRecord, rememberQa } from './confetti';
+import { burstKind, canBurst, emitMerge, mergeAuthor, mergeBursts, newlyMerged, onMerge } from './confetti';
+import { recentQaRecord, rememberQa } from '../qaRecord';
 
 const pr = (number: number, state: PullInfo['state'], headRefName = `swarm/issue-${number}-ada`) => ({ number, state, headRefName }) as PullInfo;
 const repo = (pulls: PullInfo[]) => ({ id: 'o/r', pulls }) as RepoView;

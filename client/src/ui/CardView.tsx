@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { blockers } from '../../../shared/issues';
 import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '../store';
 import { elapsedLabel } from '../qaCard';
-import { bodyExcerpt, cardLabel, canPeel, locateCard } from '../world/whiteboard';
-import type { Col } from '../world/stickies';
+import { bodyExcerpt, cardLabel, canPeel, findCard, type Col } from '../cards';
 import { Key } from './Key';
 import { Markdown } from './Markdown';
 import { Panel } from './Panel';
@@ -37,7 +36,7 @@ export function CardView({ repoId, cardKey, number, pr }: { repoId: string; card
   const qaRecords = useStore((s) => s.qa);
   const agents = useMemo(() => agentsOnRepo(allAgents, repoId), [allAgents, repoId]);
   const cols = useMemo(() => (repo ? kanbanFor(repo, agents, qaRecords) : null), [repo, agents, qaRecords]);
-  const at = cols ? locateCard(cols, cardKey, number, pr) : null;
+  const at = cols ? findCard(cols, cardKey, number, pr) : null;
 
   if (!repo || !at) {
     return (
