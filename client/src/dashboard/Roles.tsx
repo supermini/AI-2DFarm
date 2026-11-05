@@ -7,7 +7,6 @@ import { AccessibilitySettings } from '../ui/AccessibilitySettings';
 import { CloudSettings } from '../ui/CloudSettings';
 import { VoiceSettings } from '../ui/VoiceSettings';
 import { FloorsTab, IssuesTab, OfficeUpdate, SettingsCards, TeamTab } from '../ui/consoleSections';
-import { OFFICE_3D, setMode } from '../pocket/mode';
 import { Board } from '../pocket/Pocket';
 import { Team } from '../pocket/PocketTeam';
 import { CeoPanel } from './CeoPanel';
@@ -18,11 +17,6 @@ import { TerminalGrid } from './TerminalGrid';
 import { SETTINGS_TABS, type CeoPane, type DevView, type Route, type SettingsTab } from './route';
 
 type Go = (r: Route) => void;
-
-export function openOffice() {
-  useStore.getState().openOverlay(null);
-  setMode('office');
-}
 
 /** Sub-screens of a role, as chips (on narrow screens the CEO's panes, always the developer's and settings' views). */
 function Chips<T extends string>({ items, on, pick, label, className }: { items: [T, string][]; on: T; pick: (k: T) => void; label: string; className?: string }) {
@@ -104,33 +98,20 @@ export function SettingsScreen({ tab, go }: { tab: SettingsTab; go: Go }) {
   return (
     <div className="pk-page dash-settings">
       <Chips label="Settings" items={SETTINGS_TABS.map((t) => [t, SETTINGS_LABELS[t]])} on={tab} pick={(t) => go({ role: 'settings', tab: t })} />
-      {tab === 'floors' && <FloorsTab onVisit={visit} withOffice={false} />}
+      {tab === 'floors' && <FloorsTab onVisit={visit} />}
       {tab === 'team' && <TeamTab />}
       {tab === 'issues' && <IssuesTab />}
       {tab === 'office' && (
         <div className="tab-grid">
           <OfficeUpdate />
           <SettingsCards />
-          {OFFICE_3D ? (
-          <div className="card">
-            <h3>🏢 The 3D office</h3>
-            <p className="muted small">
-              This dashboard is the office without the 3D building. The 3D office is still here: open it below, or add <code>?office=3d</code> to the address. This device remembers what you last chose.
-            </p>
-            <button className="btn" onClick={openOffice}>
-              🏢 Open the 3D office
-            </button>
-            {version && <p className="muted small">cubefarm {version}</p>}
-          </div>
-          ) : (
-            version && <p className="muted small">cubefarm {version}</p>
-          )}
+          {version && <p className="muted small">cubefarm {version}</p>}
         </div>
       )}
       {tab === 'notifications' && <NotifySettings />}
       {tab === 'cloud' && <CloudSettings />}
       {tab === 'voice' && <VoiceSettings />}
-      {tab === 'accessibility' && <AccessibilitySettings pocket />}
+      {tab === 'accessibility' && <AccessibilitySettings />}
     </div>
   );
 }

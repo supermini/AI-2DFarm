@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useId, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useId, useState, type CSSProperties } from 'react';
 import { api } from '../api';
 import { isBusy, useStore, type Agent } from '../store';
 import type { AgentCli, AgentPromptView, CliView, CloudMachineState, EffortLevel, MachineHost } from '../../../shared/types';
@@ -217,7 +217,7 @@ export function PromptPreview({ agent }: { agent: Agent }) {
  * The ⚙️ Setup section of an agent's panel. The CEO always runs Claude Code, so they only get model and effort.
  * `lookEditor` is the look editor (ui/LookEditor.tsx, which needs the 3D preview), passed in by whoever has it.
  */
-export function AgentSetup({ agent, lookEditor }: { agent: Agent; lookEditor?: ReactNode }) {
+export function AgentSetup({ agent }: { agent: Agent }) {
   const terminal = useStore((s) => s.settings.runtime === 'terminal');
   const id = useId();
   const ceo = agent.role === 'ceo';
@@ -267,7 +267,6 @@ export function AgentSetup({ agent, lookEditor }: { agent: Agent; lookEditor?: R
           <EffortSelect agent={agent} id={`${id}-effort`} />
         </label>
       </div>
-      {lookEditor}
       <PromptPreview agent={agent} />
       <p className="muted small">Name and model save when you leave them; the rest, and looks, as you pick them. Running sessions aren't restarted.</p>
     </section>

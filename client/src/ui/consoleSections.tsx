@@ -1,20 +1,15 @@
-// The manager's console sections the 2D dashboard keeps (floors, team, issues, settings), with no 3D imports: the
-// console (3D office) and the dashboard's settings screen both mount them. The 3D-only bits (the look editor, the
-// replay-the-tour button) come in as optional props, like TerminalView's lookEditor.
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+// The manager's console sections the dashboard's settings screen mounts: floors, team, issues and settings.
+import { Fragment, useMemo, useState } from 'react';
 import { TeamStats } from './TeamStats';
 import { api } from '../api';
 import { PreviewPill, PreviewSettings } from './AppViewer';
-import { agentsOnRepo, pendingRequests, useStore, type Agent } from '../store';
+import { agentsOnRepo, useStore } from '../store';
 import { CEO_ID, DEFAULT_MAX_AGENTS, FLOOR_SEATS, type AgentCli, type EffortLevel, type OfficeUpdateView, type RepoView } from '../../../shared/types';
 import { CLAUDE_MODELS, modelSuggestions } from '../../../shared/models';
-import { CliOptions, CliSelect, cliName, EFFORTS, EffortSelect, LookSelect, ModelInput, NameInput, PromptPreview } from './AgentSettings';
+import { CliOptions, CliSelect, cliName, EFFORTS, EffortSelect, ModelInput, NameInput, PromptPreview } from './AgentSettings';
 import { canPostpone, canUpdateNow, drainDeadline, officeUpdateText } from '../officeUpdate';
 import { confirmDialog } from './Confirm';
 import { IssueForm } from './KanbanView';
-import { LiveTerminal } from './LiveTerminal';
-import { MicButton } from './MicButton';
-import { Resume } from './Phone';
 import { ProjectPicker } from './ProjectPicker';
 import { StatusPill } from './TerminalView';
 
@@ -28,46 +23,7 @@ export async function attempt<T>(fn: () => Promise<T>): Promise<T | undefined> {
 
 // ---------- CEO ----------
 
-function FloorBrief({ repo }: { repo: RepoView }) {
-  const [mission, setMission] = useState(repo.mission);
-  useEffect(() => setMission(repo.mission), [repo.mission]);
-  return (
-    <div className="card floor-card" style={{ ['--accent' as string]: repo.color }}>
-      <div className="row">
-        <span className="floor-badge">{repo.floor}</span>
-        <div className="grow">
-          <b>{repo.fullName}</b>
-          <div className="muted small">{repo.summary ? `🧠 ${repo.summary}` : 'The CEO has not studied this floor yet.'}</div>
-        </div>
-        <button className="btn btn-small btn-ghost" onClick={() => void attempt(() => api.onboardFloor(repo.id))} title="Study the repo again and rethink the plan and the team's size">
-          Re-study
-        </button>
-      </div>
-      <textarea value={mission} onChange={(e) => setMission(e.target.value)} rows={2} placeholder="Brief: what should this floor build next? The CEO turns it into issues and a team size." />
-      <div className="row">
-        <button className="btn btn-small" disabled={mission === repo.mission} onClick={() => void attempt(() => api.updateRepo(repo.id, { mission }))}>
-          Save brief
-        </button>
-        <span className="spacer" />
-        <button className="btn btn-small btn-good" disabled={!mission.trim()} onClick={() => void attempt(() => api.planFloor(repo.id, mission))}>
-          🧠 Ask the CEO to plan it
-        </button>
-      </div>
-      <details className="small">
-        <summary>QA brief{repo.qaBrief ? '' : ' (none yet)'}</summary>
-        <textarea
-          key={repo.qaBrief}
-          rows={4}
-          defaultValue={repo.qaBrief}
-          placeholder="What every QA pass must check on this project."
-          onBlur={(e) => e.target.value !== repo.qaBrief && void attempt(() => api.updateRepo(repo.id, { qaBrief: e.target.value }))}
-        />
-      </details>
-    </div>
-  );
-}
-
-/** The CEO's name, model, effort and prompt: the settings half of the CEO tab (the dashboard's CEO panel mounts it too). */
+/** The CEO's name, model, effort and prompt: mounted by the dashboard's CEO panel. */
 export function CeoSettingsCard() {
   const ceo = useStore((s) => s.agents[CEO_ID]);
   if (!ceo) return null;
@@ -84,122 +40,6 @@ export function CeoSettingsCard() {
         <EffortSelect agent={ceo} style={{ width: 'auto' }} />
       </div>
       <PromptPreview agent={ceo} />
-    </div>
-  );
-}
-
-/** The CEO tab. `onOpenPhone` adds the "Open the phone" button (the 3D office's phone; the dashboard has none). */
-export function CeoTab({ onOpenPhone }: { onOpenPhone?: () => void }) {
-  const ceo = useStore((s) => s.agents[CEO_ID]);
-  const log = useStore((s) => s.logs[CEO_ID]) ?? [];
-  const info = useStore((s) => s.ceo);
-  const repos = useStore((s) => s.repos);
-  const requests = useStore((s) => s.requests);
-  const [text, setText] = useState('');
-  const scroller = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const el = scroller.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [log.length]);
-  if (!ceo) return <p className="muted">The corner office is empty.</p>;
-  const working = ceo.status === 'working';
-  const pending = pendingRequests(requests);
-  const send = (t: string) => {
-    if (!t.trim()) return;
-    setText('');
-    void attempt(() => api.messageCeo(t));
-  };
-  const decided = requests.filter((r) => r.status !== 'pending').slice(-6).reverse();
-  return (
-    <div className="tab-grid">
-      <div>
-        <div className="card">
-          <div className="row">
-            <span className="avatar" style={{ background: ceo.color }}>
-              {ceo.name[0]}
-            </span>
-            <NameInput agent={ceo} style={{ maxWidth: 140, fontWeight: 700 }} />
-            <span className="muted small">CEO</span>
-            <StatusPill status={ceo.status} />
-            <span className="spacer" />
-            <ModelInput agent={ceo} style={{ maxWidth: 150 }} />
-            <EffortSelect agent={ceo} style={{ width: 'auto' }} />
-          </div>
-          <div className="small">
-            <b>Now:</b> {working ? info.job?.label : 'free'}
-            {info.queue.length > 0 && (
-              <>
-                {' '}
-                · <b>Up next:</b> {info.queue.map((j) => j.label).join(' → ')}
-              </>
-            )}
-          </div>
-          <div className="muted small">
-            {info.nextReviewAt ? `Next company review around ${new Date(info.nextReviewAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} (skipped if nothing changed).` : 'Periodic reviews are off (Settings).'}
-          </div>
-          <PromptPreview agent={ceo} />
-          {ceo.terminal ? (
-            <LiveTerminal agentId={ceo.id} className="ceo-term" />
-          ) : (
-            <div className="term ceo-term" ref={scroller}>
-              {log.length === 0 && <div className="term-line term-system">(nothing yet)</div>}
-              {log.map((l) => (
-                <div key={l.id} className={`term-line term-${l.kind}`}>
-                  {l.text || ' '}
-                </div>
-              ))}
-            </div>
-          )}
-          <form
-            className="row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              send(text);
-            }}
-          >
-            <input value={text} onChange={(e) => setText(e.target.value)} placeholder={`Message ${ceo.name} (or press P anywhere for your phone)…`} />
-            <MicButton kind="console" value={text} onChange={setText} onSend={send} />
-            <button className="btn" disabled={!text.trim()}>
-              Send
-            </button>
-          </form>
-          <div className="row">
-            {working && (
-              <button className="btn btn-small btn-bad" onClick={() => void attempt(() => api.stop(ceo.id))}>
-                ■ Stop
-              </button>
-            )}
-            <button className="btn btn-small" disabled={repos.length === 0} onClick={() => void attempt(() => api.ceoReview())}>
-              🔎 Review the company now
-            </button>
-            {onOpenPhone && (
-              <button className="btn btn-small" onClick={onOpenPhone}>
-                📱 Open the phone
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-      <div>
-        <h3 className="section">📄 Team changes {pending.length > 0 && <span className="badge">{pending.length}</span>}</h3>
-        {pending.length === 0 && <p className="muted small">None waiting. The CEO grows or shrinks a floor's team when its work calls for it (Settings → Team changes from the CEO).</p>}
-        {pending.map((r) => (
-          <Resume key={r.id} req={r} />
-        ))}
-        {decided.length > 0 && (
-          <details className="small" style={{ marginBottom: 12 }}>
-            <summary>Recent decisions</summary>
-            {decided.map((r) => (
-              <Resume key={r.id} req={r} />
-            ))}
-          </details>
-        )}
-        <h3 className="section">🗺️ Project briefs</h3>
-        {repos.length === 0 && <p className="muted small">Connect a repo first.</p>}
-        {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
-          <FloorBrief key={r.id} repo={r} />
-        ))}
-      </div>
     </div>
   );
 }
@@ -263,9 +103,8 @@ function OfficeRow({ update }: { update: OfficeUpdateView }) {
   );
 }
 
-function FloorRow({ repo, all, onVisit }: { repo: RepoView; all: RepoView[]; onVisit?: (floor: number) => void }) {
+function FloorRow({ repo, all, onVisit }: { repo: RepoView; all: RepoView[]; onVisit: (floor: number) => void }) {
   const agents = useStore((s) => s.agents);
-  const goToFloor = useStore((s) => s.goToFloor);
   const openOverlay = useStore((s) => s.openOverlay);
   // The office's own folder isn't fast-forwarded; its update is on the Office row instead.
   const officeFolder = useStore((s) => !!s.officeUpdate) && !!repo.folderSync?.startsWith('update ready');
@@ -296,7 +135,7 @@ function FloorRow({ repo, all, onVisit }: { repo: RepoView; all: RepoView[]; onV
           {repo.syncError && <div className="term-error small">sync failed: {repo.syncError}</div>}
         </div>
         <input type="color" value={repo.color} onChange={(e) => patch({ color: e.target.value })} title="Floor colour" aria-label={`Floor ${repo.floor} colour`} />
-        <button className="btn btn-small" onClick={() => (onVisit ?? goToFloor)(repo.floor)}>
+        <button className="btn btn-small" onClick={() => onVisit(repo.floor)}>
           Visit
         </button>
       </div>
@@ -367,14 +206,12 @@ export function OfficeUpdate() {
   return update ? <OfficeRow update={update} /> : null;
 }
 
-/** onVisit: where "Visit" goes (default: the 3D camera); withOffice: false leaves the Office row to the caller. */
-export function FloorsTab({ onVisit, withOffice = true }: { onVisit?: (floor: number) => void; withOffice?: boolean }) {
+/** onVisit: where "Visit" goes. */
+export function FloorsTab({ onVisit }: { onVisit: (floor: number) => void }) {
   const repos = useStore((s) => s.repos);
-  const officeUpdate = useStore((s) => s.officeUpdate);
   return (
     <div className="tab-grid">
       <div>
-        {withOffice && officeUpdate && <OfficeRow update={officeUpdate} />}
         <h3 className="section">🏢 Floors</h3>
         {repos.length === 0 && <p className="muted">No floors yet. Add a project →</p>}
         {[...repos].sort((a, b) => a.floor - b.floor).map((r) => (
@@ -450,14 +287,12 @@ function AddAgent({ repo, size }: { repo: RepoView; size: number }) {
   );
 }
 
-/** lookEditor: the 3D-only look editor under a 🎨 row (the button is hidden without it). */
-export function TeamTab({ lookEditor }: { lookEditor?: (agent: Agent) => ReactNode }) {
+export function TeamTab() {
   const repos = useStore((s) => s.repos);
   const agents = useStore((s) => s.agents);
   const settings = useStore((s) => s.settings);
   const openOverlay = useStore((s) => s.openOverlay);
   const terminal = settings.runtime === 'terminal';
-  const [openLook, setOpenLook] = useState<string | null>(null);
   if (repos.length === 0) return <p className="muted">Connect a repo first; agents need a floor to sit on.</p>;
   return (
     <div>
@@ -489,13 +324,6 @@ export function TeamTab({ lookEditor }: { lookEditor?: (agent: Agent) => ReactNo
                         <span className="cloud-badge" title="Works in an Upstash Box: carries on when the office is closed">
                           ☁
                         </span>
-                      )}
-                    </td>
-                    <td>
-                      {lookEditor && (
-                        <button className="btn btn-small btn-ghost" aria-expanded={openLook === a.id} title={`${a.name}'s look`} onClick={() => setOpenLook(openLook === a.id ? null : a.id)}>
-                          🎨
-                        </button>
                       )}
                     </td>
                     <td>
@@ -536,18 +364,6 @@ export function TeamTab({ lookEditor }: { lookEditor?: (agent: Agent) => ReactNo
                       </button>
                     </td>
                   </tr>
-                  {lookEditor && openLook === a.id && (
-                    <tr>
-                      <td />
-                      <td colSpan={terminal ? 8 : 7}>
-                        <label className="row small">
-                          <span>Drawn as</span>
-                          <LookSelect agent={a} />
-                        </label>
-                        {lookEditor(a)}
-                      </td>
-                    </tr>
-                  )}
                   </Fragment>
                 ))}
               </tbody>
@@ -642,8 +458,8 @@ export function IssuesTab({ initialRepo }: { initialRepo?: string }) {
 
 // ---------- settings ----------
 
-/** The two settings cards (agents, CEO, runtime, company, environment). tour: the 3D tutorial's "Replay the tour". */
-export function SettingsCards({ tour = false }: { tour?: boolean }) {
+/** The two settings cards (agents, CEO, runtime, company, environment). */
+export function SettingsCards() {
   const settings = useStore((s) => s.settings);
   const clis = useStore((s) => s.clis);
   const user = useStore((s) => s.user);
@@ -803,13 +619,6 @@ export function SettingsCards({ tour = false }: { tour?: boolean }) {
         />
       </label>
       <p className="muted small">A desk left idle this long loses its node_modules and build output to save disk space. Its next task installs them again.</p>
-      {tour && (
-        <div className="row">
-          <button className="btn btn-small" onClick={() => set({ tutorialStep: 0 })}>
-            🧭 Replay the tour
-          </button>
-        </div>
-      )}
       <h3>ℹ️ Environment</h3>
       <div className="small">
         cubefarm: <b>{version ?? 'unknown'}</b>

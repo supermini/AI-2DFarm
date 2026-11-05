@@ -163,7 +163,7 @@ export function TerminalGrid({ repoId }: { repoId: string | null }) {
         )}
       </div>
       <aside className="dash-tworkers" aria-label="Who is working">
-        <WorkersPanel embedded />
+        <WorkersPanel />
       </aside>
     </div>
   );
