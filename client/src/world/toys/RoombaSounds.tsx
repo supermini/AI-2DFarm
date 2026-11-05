@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useRenderPaused } from '../../perf';
 import { useStore } from '../../store';
-import { audio, createPanner, groupOutput, listenerAt, noise, recordSfx, setPannerPosition, tone, type Vec3 } from '../../ui/sfx';
+import { audio, groupOutput, noise, recordSfx, tone, type Vec3 } from '../../ui/sfx';
+import { createPanner, listenerAt, setPannerPosition } from '../../ui/sfxSpatial';
 import { ROOMBA_EVENT, type Roomba } from './roombaBrain';
 import { bumpAllowed, humFor, humReach, type Hum } from './roombaSound';
 

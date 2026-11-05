@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useStore } from '../store';
 import { keyboardFor } from '../ui/keyboards';
-import { listenerAt } from '../ui/sfx';
+import { listenerAt } from '../ui/sfxSpatial';
 import { TYPING_CHANNELS, TYPING_RANGE, placeTypingChannel, typingGeneration, typingSound } from '../ui/typingSfx';
 import { isCelebrating } from './gongState';
 import { isSeated } from './people';

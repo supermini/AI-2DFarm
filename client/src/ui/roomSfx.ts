@@ -8,7 +8,8 @@
 import { doorOpen } from '../world/doors';
 import { SIDES, type Side } from '../world/layout';
 import { FADE, ROOM_SENDS, ROOM_SOUND, fillImpulse, newRoomTracker, occlusion, roomAt, trackRoom, zoneAt, type Room, type Zone } from './acoustics';
-import { listenerAt, recordSfx, roomBus, setOccluder, type Vec3 } from './sfx';
+import { recordSfx, type Vec3 } from './sfx';
+import { listenerAt, roomBus, setOccluder } from './sfxSpatial';
 
 type FloorKind = 'office' | 'lobby' | 'roof';
 

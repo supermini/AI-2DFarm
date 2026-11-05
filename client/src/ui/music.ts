@@ -12,7 +12,8 @@
 import { SONGS, midiHz, stepAt, stepTime, trackFor, type Instrument, type Song, type Track } from '../world/jukeboxSongs';
 import { CRACKLE_SECONDS, WOBBLE, fillCrackle } from './lofi';
 import { DEFAULT_MUSIC_LEVEL, DUCK_ATTACK, DUCK_GAIN, DUCK_RELEASE, clampMusicLevel, duckHold, musicEdge, musicFalloff, musicLevel } from './musicMix';
-import { createPanner, groupOutput, listenerAt, occlusionAt, onAlertSound, recordSfx, type Vec3 } from './sfx';
+import { groupOutput, onAlertSound, onMusicDuck, recordSfx, type Vec3 } from './sfx';
+import { createPanner, listenerAt, occlusionAt } from './sfxSpatial';
 import { distance } from './sfxMix';
 
 const TICK_MS = 50;
@@ -135,6 +136,9 @@ export function holdMusicDuck(): () => void {
     scheduleDuck(0);
   };
 }
+
+// Spoken messages, voice clips and the 🎙 duck it through the 2D core (sfx.ts), which doesn't import the jukebox.
+onMusicDuck(holdMusicDuck);
 
 // Every alert (the gong, cues, chimes) ducks the music while it rings, up to a few seconds.
 onAlertSound((c, start, end) => {

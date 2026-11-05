@@ -7,7 +7,8 @@
 import { doorOpen } from '../world/doors';
 import { SIDES, type Side } from '../world/layout';
 import { birdCall, cutoffHz, outsideHearing, type OutsideHearing } from './outsideMix';
-import { groupOutput, listenerAt, listenerFacing, recordSfx } from './sfx';
+import { groupOutput, recordSfx } from './sfx';
+import { listenerAt, listenerFacing } from './sfxSpatial';
 import { panOf } from './sfxMix';
 import { patterSamples } from './weatherMix';
 

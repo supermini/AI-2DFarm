@@ -28,7 +28,8 @@ import {
   type OutsideHearing,
   type OutsideLayers,
 } from './outsideMix';
-import { groupOutput, listenerAt, listenerFacing, recordSfx } from './sfx';
+import { groupOutput, recordSfx } from './sfx';
+import { listenerAt, listenerFacing } from './sfxSpatial';
 import { panOf } from './sfxMix';
 
 type FloorKind = 'office' | 'lobby' | 'roof';

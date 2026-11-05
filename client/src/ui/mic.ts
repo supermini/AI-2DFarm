@@ -15,8 +15,7 @@ import { HANDS_FREE_IDLE, handsFree, type HandsFree, type HandsFreeEvent, type R
 import { closesMic, HOLD_MS, isTalkKey, type KeyPlace } from './micKeys';
 import { freshEars, heardLevel, heardWords, listenRules, sendsWhenDone, verdict, type Ears, type MicMode } from './micSilence';
 import { cantListen, micErrorLine, phrasesText, withTranscript, type MicCaps, type Phrase } from './micText';
-import { holdMusicDuck } from './music';
-import { getAudioPrefs, listenChime, setMicOpen, subscribeAudio } from './sfx';
+import { getAudioPrefs, holdMusicDuck, listenChime, setMicOpen, subscribeAudio } from './sfx';
 
 export type MicState = 'idle' | 'listening' | 'transcribing' | 'error';
 

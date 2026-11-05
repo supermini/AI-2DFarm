@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { createStepTracker } from '../../ui/footstepRules';
-import { listenerAt, noise, tone, type Vec3 } from '../../ui/sfx';
+import { noise, tone, type Vec3 } from '../../ui/sfx';
+import { listenerAt } from '../../ui/sfxSpatial';
 import { surfaceAt } from '../layout';
 import type { ToyFloor } from './balls';
 import { DOG_EVENT, type Dog } from './dogBrain';
