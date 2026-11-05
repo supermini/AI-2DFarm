@@ -2,7 +2,7 @@
 // waits on the manager (approvals, interviews, PRs the CEO is triaging), the issue form and the CEO's own settings.
 // Below 1024px the two columns are the chat and approvals panes (the route's `pane`). Everything is an existing
 // component or REST call; the 3D office's lobby interview opens here as a dialog.
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { api } from '../api';
 import { agentsOnRepo, pendingRequests, useStore } from '../store';
 import { CEO_ID, type HireRequestView } from '../../../shared/types';
@@ -213,19 +213,37 @@ function FileIssue() {
   );
 }
 
+const ONE_PANE = '(max-width: 1024px)';
+
+/** True where the two columns are panes, one at a time (styles.css `.dash-pane-off`). */
+function useOnePane() {
+  return useSyncExternalStore(
+    (changed) => {
+      const q = matchMedia(ONE_PANE);
+      q.addEventListener('change', changed);
+      return () => q.removeEventListener('change', changed);
+    },
+    () => matchMedia(ONE_PANE).matches,
+  );
+}
+
 export function CeoPanel({ pane, go }: { pane: CeoPane; go: (r: Route) => void }) {
   const ceoName = useStore((s) => s.agents[CEO_ID]?.name ?? 'CEO');
   const chips: [CeoPane, string][] = [
     ['chat', `💬 ${ceoName}`],
     ['approvals', '✋ Approvals'],
   ];
+  // Chat marks the thread read while mounted, so it's only there when it can be seen: on the approvals pane a new CEO
+  // message must still toast and count as unread.
+  const chatShown = useOnePane() ? pane === 'chat' : true;
   // While the chat is on screen, new CEO messages don't toast (the store reads this as the phone's chat being open).
   useEffect(() => {
+    if (!chatShown) return;
     useStore.getState().openOverlay({ kind: 'phone', tab: 'chat' });
     return () => {
       if (useStore.getState().overlay?.kind === 'phone') useStore.getState().openOverlay(null);
     };
-  }, []);
+  }, [chatShown]);
   return (
     <div className="dash-ceo">
       <div className="pk-chips dash-narrow-only dash-chips-pad" role="tablist" aria-label="CEO">
@@ -239,7 +257,7 @@ export function CeoPanel({ pane, go }: { pane: CeoPane; go: (r: Route) => void }
         <div className="ceo-top">
           <CeoCard />
         </div>
-        <Chat autoFocus={false} />
+        {chatShown && <Chat autoFocus={false} />}
       </section>
       <section className={`dash-ceo-side ${pane === 'approvals' ? '' : 'dash-pane-off'}`} aria-label="Approvals and the CEO's work">
         <Approvals />
