@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { api } from '../api';
 import { floorPrCounts, isBusy, pendingRequests, unreadMessages, useStore, type PhoneTab } from '../store';
 import { CEO_ID, type AgentCli, type CliView, type EffortLevel, type HireRequestView, type MachineHost, type PhoneMessage, type SwarmSettings } from '../../../shared/types';
@@ -10,8 +10,6 @@ import { closeOverlay } from './Panel';
 import { useDialogFocus } from './dialogFocus';
 import { isKey } from './controls';
 import { Key } from './Key';
-import { Games, type GameId } from './games/Games';
-import { HolidayStrip } from './HolidayStrip';
 import { replayKind } from './voiceQueue';
 import { CLAUDE_MODELS, effectiveModel, modelSuggestions } from '../../../shared/models';
 
@@ -616,18 +614,35 @@ function Company() {
 // ---------- the phone ----------
 
 // Put the phone away mid-game and it opens on that (paused) game next time, unless something new came in meanwhile.
-let resumeGames: { game: GameId | null; waiting: number } | null = null;
+let resumeGames: { game: string | null; waiting: number } | null = null;
+
+/** What the Games tab gets: the open game's id (null shows the list) and a way to change it. */
+export interface PhoneGamesProps {
+  game: string | null;
+  onGame: (g: string | null) => void;
+}
+
+/**
+ * What only the 3D office adds to the phone: a line under the status bar (the holiday strip) and the Games tab.
+ * Left out, the phone is just chat, team and company (pocket mode and the 2D dashboard).
+ */
+export interface PhoneExtras {
+  strip?: ReactNode;
+  games?: ComponentType<PhoneGamesProps>;
+}
 
 const waitingNow = () => {
   const s = useStore.getState();
   return pendingRequests(s.requests).length + unreadMessages(s.messages, s.phoneReadAt);
 };
 
-export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestId?: string }) {
-  const [tab, setTab] = useState<PhoneTab>(() =>
-    resumeGames && !requestId && waitingNow() <= resumeGames.waiting ? 'games' : (initialTab ?? (requestId ? 'hires' : 'chat')),
-  );
-  const [game, setGame] = useState<GameId | null>(() => (tab === 'games' ? (resumeGames?.game ?? null) : null));
+export function Phone({ tab: initialTab, requestId, strip, games: GamesTab }: { tab?: PhoneTab; requestId?: string } & PhoneExtras) {
+  const [tab, setTab] = useState<PhoneTab>(() => {
+    const first: PhoneTab =
+      resumeGames && !requestId && waitingNow() <= resumeGames.waiting ? 'games' : (initialTab ?? (requestId ? 'hires' : 'chat'));
+    return first === 'games' && !GamesTab ? 'chat' : first;
+  });
+  const [game, setGame] = useState<string | null>(() => (tab === 'games' ? (resumeGames?.game ?? null) : null));
   const where = useRef({ tab, game });
   useEffect(() => {
     where.current = { tab, game };
@@ -676,7 +691,7 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
     ['chat', '💬', ceoName, tab === 'chat' ? 0 : unread],
     ['hires', '👥', 'Team', pending],
     ['company', '📊', 'Company', 0],
-    ['games', '🎮', 'Games', 0],
+    ...(GamesTab ? [['games', '🎮', 'Games', 0] as [PhoneTab, string, string, number]] : []),
   ];
   return (
     <div className="overlay phone-overlay" onMouseDown={(e) => e.target === e.currentTarget && closeOverlay()}>
@@ -686,13 +701,13 @@ export function Phone({ tab: initialTab, requestId }: { tab?: PhoneTab; requestI
           <span className="phone-notch" />
           <span>📶 🔋</span>
         </div>
-        <HolidayStrip />
+        {strip}
         <div className="phone-screen">
           {tab !== 'games' && <LobbyNudge />}
           {tab === 'chat' && <Chat />}
           {tab === 'hires' && <TeamChanges focusId={requestId} />}
           {tab === 'company' && <Company />}
-          {tab === 'games' && <Games game={game} onGame={setGame} />}
+          {tab === 'games' && GamesTab && <GamesTab game={game} onGame={setGame} />}
         </div>
         <nav className="phone-tabs" role="tablist" aria-label="Phone">
           {tabs.map(([k, icon, label, badge]) => (

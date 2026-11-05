@@ -12,7 +12,7 @@ import { Interview } from './Interview';
 import { KanbanView } from './KanbanView';
 import { ManagerConsole } from './ManagerConsole';
 import { Panel } from './Panel';
-import { Phone } from './Phone';
+import { Phone3D } from './Phone3D';
 import { TerminalView } from './TerminalView';
 import { getAudioPrefs, setAudioPrefs, subscribeAudio } from './sfx';
 import { CHATTER_LEVELS, SOUND_GROUPS, type ChatterLevel, type SoundGroup } from './audioPrefs';
@@ -430,7 +430,7 @@ export function Overlays() {
     case 'terminal':
       return overlay.agentId === CEO_ID ? <ManagerConsole initialTab="ceo" /> : <TerminalView agentId={overlay.agentId} />;
     case 'phone':
-      return <Phone tab={overlay.tab} requestId={overlay.requestId} />;
+      return <Phone3D tab={overlay.tab} requestId={overlay.requestId} />;
     case 'kanban':
       return <KanbanView repoId={overlay.repoId} />;
     case 'card':
