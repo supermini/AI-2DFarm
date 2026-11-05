@@ -50,7 +50,7 @@ const THREE_D_FILES: Record<string, string> = {
   // 3D-only since the plan began.
   'ui/LookEditor.tsx': 'the character look editor: draws the 3D figure',
   'ui/CareerCard.tsx': 'the 3D-only half of the career card (the 2D half is TeamStats.tsx)',
-  'ui/portrait.ts': 'renders a character portrait with three.js',
+  'ui/portrait.ts': 'draws a character portrait on a 2D canvas from world/appearance (only CareerCard.tsx uses it)',
   'ui/Phone3D.tsx': 'the in-world phone: the mini-games and the 3D-office extras',
   'ui/HolidayStrip.tsx': 'the holiday theme strip of the 3D office',
   'ui/games/': 'the phone\'s mini-games (draw with world/draw.ts), reached only through Phone3D.tsx',
