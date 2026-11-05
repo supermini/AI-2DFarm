@@ -66,7 +66,7 @@ export function AccessibilitySettings() {
     <>
       <section className="card a11y-card" aria-labelledby={`${name}-cap`}>
         <h3 id={`${name}-cap`}>💬 Captions</h3>
-        <Toggle k="captions" hint="The CEO's messages written out as they're read aloud, and short captions for important sounds (the gong, a merge cheer, alarms, the jukebox) with an arrow towards where they came from.">
+        <Toggle k="captions" hint="The CEO's messages written out as they're read aloud, and short captions for important sounds (a merge chime, alarms).">
           Show captions
         </Toggle>
         <Slider k="captionSize" label="Caption size" unit="%" />
@@ -89,7 +89,7 @@ export function AccessibilitySettings() {
             </label>
           ))}
         </fieldset>
-        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? 'Always on with a colour-blind palette.' : 'On name tags, the whiteboard, Kanban cards, status pills and toasts.'}>
+        <Toggle k="statusShapes" disabled={prefs.palette !== 'standard'} hint={prefs.palette !== 'standard' ? 'Always on with a colour-blind palette.' : 'On Kanban cards, status pills and toasts.'}>
           Shapes beside status colours (✓ ✕ ! ⏳)
         </Toggle>
         <Swatches palette={prefs.palette} shapes={shapes} />
