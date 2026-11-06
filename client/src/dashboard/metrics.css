@@ -10,6 +10,15 @@
 .dash-metrics .card {
   overflow-x: auto;
 }
+/* On phones the numbers table's min-content width would otherwise widen the one-column grid and clip the cards. */
+@media (max-width: 900px) {
+  .dash-metrics .tab-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dash-metrics .tab-grid > * {
+    min-width: 0;
+  }
+}
 
 .act {
   position: relative;
