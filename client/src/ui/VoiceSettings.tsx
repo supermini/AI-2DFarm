@@ -377,7 +377,7 @@ export function VoiceSettings() {
             <button className="btn btn-small" disabled={!canTest} onClick={() => void test()} title={canTest ? undefined : 'Save a key and pick a voice first'}>
               {playing === 'test' ? '■ Stop' : '🔈 Test'}
             </button>
-            <span className="muted small">Previews and tests play at your volume; M mutes them.</span>
+            <span className="muted small">Previews and tests play at your volume.</span>
           </div>
         </>
       )}

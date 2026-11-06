@@ -14,7 +14,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 
 const HELP = `
-  cubefarm ${pkg.version}: a cartoon 3D office where a team of AI coding agents works through your GitHub issues.
+  cubefarm ${pkg.version}: a team of AI coding agents works through your GitHub issues, run from a 2D dashboard.
 
   Usage
     npx cubefarm            start the office and open it in your browser

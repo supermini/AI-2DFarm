@@ -83,8 +83,8 @@ and anything already on the phone when the page loads, stays silent. Messages ar
 most 3 wait their turn and anything older than 2 minutes is skipped. With several office tabs open, only one reads
 each message (the one you're looking at, if any).
 
-The **Voice** slider in the sound settings (help, **H**) sets its level under the master volume, and **M** mutes it
-like every other sound. Other office sounds dip by about 8 dB while a message is spoken. A 🔊 on the phone icon shows
+Messages play at your browser's and your computer's volume, and **🔈 Test** in Settings → Voice plays a line at it.
+Other office sounds dip while a message is spoken. A 🔊 on the phone icon shows
 it's speaking; click it to stop. If the clip can't be fetched (no key, ElevenLabs down), you hear the usual message
 chirp instead. `window.__swarmVoice` lists the messages read aloud (`id`, `provider`, `start`, `end`, `volume`, and
 `replay: true` for a replay).
@@ -130,14 +130,13 @@ leaving it in the box; letting go of a hold sends it too.
 
 **Hands-free** (the 🎧 on the phone's chat, off by default; also in Settings → Voice) is a conversation without
 touching anything: when the CEO's reply has been read aloud, a soft chime plays and the phone listens for up to 8 s with
-a pulsing 🎙️. Say something and it's sent once you stop; say nothing and it closes (with a falling chime). **Esc** or
-**M** closes it straight away. It needs the CEO's voice on, the phone open on the chat in the tab you're looking at, and
+a pulsing 🎙️. Say something and it's sent once you stop; say nothing and it closes (with a falling chime). **Esc** closes it straight away. It needs the CEO's voice on, the phone open on the chat in the tab you're looking at, and
 an empty message box; it never asks for the microphone on its own (turning it on asks, from that click).
 
 Manners: the browser asks for the microphone the first time you press the 🎙️ (or turn hands-free on), and a refusal
 is explained in one line. The mic is only ever on while you hold the button or V, or while the pulsing 🎙️ shows
-(a tap, hands-free). While it listens, the jukebox and other sounds dip, a message being read dips by about 15 dB (the
-browser's voice pauses), the office's cues (merge, QA, errors) wait until it closes, and the merge gong stays quiet.
+(a tap, hands-free). While it listens, everything dips, the voice too, and the office's cues (merge, QA, errors) wait
+until it closes.
 
 `window.__swarmMic` shows the 🎙️'s `state` (`idle`, `listening`, `transcribing` or `error`), `mode` (`hold`, `tap`,
 `handsfree`), whether the mic is `live`, the last `transcript`, the `provider`, the last `error`, what this browser
@@ -158,7 +157,7 @@ hears (with ElevenLabs, `say()` marks speech for the silence detector). The rule
 | `DELETE /api/voice/cache` | deletes every saved clip |
 | `GET /api/voice/sample?voiceId=…` | the Test line in that voice (default: the chosen one) |
 | `POST /api/voice/transcribe` | the 🎙️ with ElevenLabs: the recorded clip as the body (`Content-Type` its audio type, `X-Clip-Ms` its length) → `{ text }`. 409 when ElevenLabs isn't the provider or there's no key, 413 over 60 s or 5 MB, 415 for anything but WebM, Ogg, MP4, MP3 or WAV, 502 when ElevenLabs fails |
-| `GET /api/voice/standup?n=3&part=morning` | the CEO's line at a stand-up in the 3D office ("Morning team, three new features today!"; `part` is `morning`, `afternoon` or `evening`), made once per wording and cached; 404 when the voice isn't ElevenLabs |
+| `GET /api/voice/standup?n=3&part=morning` | the CEO's line at a stand-up, the 3D office's ritual when a burst of issues is filed ("Morning team, three new features today!"; `part` is `morning`, `afternoon` or `evening`; the dashboard doesn't call it), made once per wording and cached; 404 when the voice isn't ElevenLabs |
 
 Settings travel in `settings.voice` (`PATCH /api/settings`): `{ provider: 'off' | 'browser' | 'elevenlabs', voiceId,
 voiceName, model, speakOffice, keepDays }`, and listening in `settings.listen`: `{ provider: 'off' | 'browser' |

@@ -1,7 +1,7 @@
 {
   "name": "cubefarm",
   "version": "0.3.20",
-  "description": "A cartoon 3D office where a team of AI coding agents works through your GitHub issues.",
+  "description": "A team of AI coding agents works through your GitHub issues, run from a 2D dashboard.",
   "keywords": [
     "claude-code",
     "codex",
@@ -11,7 +11,7 @@
     "coding-agents",
     "github-issues",
     "automation",
-    "threejs"
+    "dashboard"
   ],
   "homepage": "https://github.com/leonvanzyl/cubefarm#readme",
   "bugs": "https://github.com/leonvanzyl/cubefarm/issues",
