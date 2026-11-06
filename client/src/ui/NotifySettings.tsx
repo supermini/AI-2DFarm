@@ -278,6 +278,47 @@ function MergeChime() {
   );
 }
 
+/** This browser's master volume and mute: the prefs the 3D office saved, still read by sfx.ts. */
+function Sound() {
+  const muted = useSyncExternalStore(subscribeAudio, () => getAudioPrefs().muted);
+  const volume = useSyncExternalStore(subscribeAudio, () => getAudioPrefs().volume);
+  return (
+    <div className="notify-hook">
+      <div className="row wrap">
+        <b className="grow">🔊 Sound (this browser)</b>
+        <label className="toggle small">
+          <input
+            type="checkbox"
+            checked={muted}
+            onChange={(e) => {
+              unlockAudio();
+              setAudioPrefs({ muted: e.target.checked });
+            }}
+          />{' '}
+          Mute
+        </label>
+      </div>
+      <p className="muted small">Voice replay, alert cues and the merge chime.</p>
+      <label className="a11y-slider">
+        <span>Master volume</span>
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={volume}
+          aria-valuetext={`${volume}%`}
+          onChange={(e) => {
+            unlockAudio();
+            setAudioPrefs({ volume: Number(e.target.value) });
+          }}
+        />
+        <b>{volume}%</b>
+      </label>
+    </div>
+  );
+}
+
 export function NotifySettings() {
   const notify = useStore((s) => s.settings.notify);
   const [url, setUrl] = useState(notify.officeUrl);
@@ -296,6 +337,7 @@ export function NotifySettings() {
         ))}
       </div>
       <MergeChime />
+      <Sound />
       <label className="field">
         <span>Office address for links (optional)</span>
         <input
