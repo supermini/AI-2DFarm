@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { blockers } from '../../../shared/issues';
 import { agentsOnRepo, kanbanFor, useStore, type Agent, type KanbanCard } from '../store';
 import { elapsedLabel } from '../qaCard';
-import { bodyExcerpt, cardLabel, canPeel, findCard, type Col } from '../cards';
-import { Key } from './Key';
+import { bodyExcerpt, cardLabel, findCard, type Col } from '../cards';
 import { Markdown } from './Markdown';
 import { Panel } from './Panel';
 
@@ -102,11 +101,6 @@ export function CardView({ repoId, cardKey, number, pr, embedded }: { repoId: st
         )}
         <span className="spacer" />
         <span className="muted small">
-          {!embedded && canPeel(col, card) && (
-            <>
-              <Key action="drop" /> on the sticky takes it to a free agent's desk ·{' '}
-            </>
-          )}
           <kbd>Esc</kbd> closes
         </span>
       </div>

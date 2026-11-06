@@ -17,15 +17,8 @@ export interface A11yPrefs {
   palette: Palette;
   /** A shape or icon beside every status colour. */
   statusShapes: boolean;
-  /** Vertical field of view, degrees. */
-  fov: number;
-  headBob: boolean;
-  /** Camera sway: the head tilting back for a sip, and any screen shake. */
-  cameraShake: boolean;
   /** 'system' follows the operating system's prefers-reduced-motion. */
   reduceMotion: ReduceMotion;
-  /** A fixed dot in the middle of the view, which helps against motion sickness. */
-  centerDot: boolean;
   /** HUD, phone, console and panels, percent. */
   uiScale: number;
   /** A plainer, wider-spaced font in the panels, easier to read with dyslexia. */
@@ -36,7 +29,6 @@ export interface A11yPrefs {
 export const LIMITS = {
   captionSize: { min: 75, max: 200, step: 5 },
   captionBg: { min: 0, max: 100, step: 5 },
-  fov: { min: 60, max: 100, step: 1 },
   uiScale: { min: 80, max: 150, step: 5 },
 } as const;
 
@@ -46,11 +38,7 @@ export const DEFAULT_A11Y: A11yPrefs = {
   captionBg: 75,
   palette: 'standard',
   statusShapes: false,
-  fov: 72,
-  headBob: true,
-  cameraShake: true,
   reduceMotion: 'system',
-  centerDot: false,
   uiScale: 100,
   readableFont: false,
   highContrast: false,
@@ -76,11 +64,7 @@ export function normalizeA11yPrefs(raw: unknown): A11yPrefs {
     captionBg: inRange('captionBg', p.captionBg),
     palette: PALETTES.includes(p.palette as Palette) ? (p.palette as Palette) : DEFAULT_A11Y.palette,
     statusShapes: bool(p.statusShapes, DEFAULT_A11Y.statusShapes),
-    fov: inRange('fov', p.fov),
-    headBob: bool(p.headBob, DEFAULT_A11Y.headBob),
-    cameraShake: bool(p.cameraShake, DEFAULT_A11Y.cameraShake),
     reduceMotion: REDUCE_MOTION.includes(p.reduceMotion as ReduceMotion) ? (p.reduceMotion as ReduceMotion) : DEFAULT_A11Y.reduceMotion,
-    centerDot: bool(p.centerDot, DEFAULT_A11Y.centerDot),
     uiScale: inRange('uiScale', p.uiScale),
     readableFont: bool(p.readableFont, DEFAULT_A11Y.readableFont),
     highContrast: bool(p.highContrast, DEFAULT_A11Y.highContrast),

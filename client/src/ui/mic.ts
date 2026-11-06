@@ -2,7 +2,7 @@
 // (MicButton.tsx registers them): the browser's speech recognition fills the box as you speak, or a recording goes to
 // ElevenLabs through the office and comes back as text. Holding the 🎙 or V talks, a tap listens until you stop
 // talking, and the phone's hands-free conversation opens the mic after the CEO's spoken reply. The mic is only ever on
-// while one of those shows its pulsing 🎙; while it is, the jukebox and the CEO's voice dip and cues wait (sfx.ts).
+// while one of those shows its pulsing 🎙; while it is, the CEO's voice dips and cues wait (sfx.ts).
 // The rules are pure (micSilence.ts, handsFree.ts, micKeys.ts, micText.ts); window.__swarmMic is the probe.
 import { create } from 'zustand';
 import { CLIP_MAX_BYTES, clipProblem } from '../../../shared/clipLimits';
@@ -15,7 +15,7 @@ import { HANDS_FREE_IDLE, handsFree, type HandsFree, type HandsFreeEvent, type R
 import { closesMic, HOLD_MS, isTalkKey, type KeyPlace } from './micKeys';
 import { freshEars, heardLevel, heardWords, listenRules, sendsWhenDone, verdict, type Ears, type MicMode } from './micSilence';
 import { cantListen, micErrorLine, phrasesText, withTranscript, type MicCaps, type Phrase } from './micText';
-import { getAudioPrefs, holdMusicDuck, listenChime, setMicOpen, subscribeAudio } from './sfx';
+import { getAudioPrefs, listenChime, setMicOpen, subscribeAudio } from './sfx';
 
 export type MicState = 'idle' | 'listening' | 'transcribing' | 'error';
 
@@ -315,15 +315,13 @@ function explain(line: string, id: string) {
   setTimeout(() => useMic.getState().state === 'error' && !session && set({ state: 'idle', target: null }), 3000);
 }
 
-/** While the mic listens: the jukebox, other sounds and the CEO's voice dip, the browser's voice pauses, cues wait. */
+/** While the mic listens: other sounds and the CEO's voice dip, the browser's voice pauses, cues wait. */
 function quiet(): () => void {
-  const unduck = holdMusicDuck();
   setMicOpen(true);
   const synth = typeof speechSynthesis !== 'undefined' ? speechSynthesis : null;
   const paused = !!synth?.speaking && !synth.paused;
   if (paused) synth!.pause();
   return () => {
-    unduck();
     setMicOpen(false);
     if (paused) synth!.resume();
   };
