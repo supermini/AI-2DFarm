@@ -5,7 +5,7 @@ import { resetA11y, setA11y, useA11y } from './a11y';
 import { DEFAULT_A11Y, LIMITS, showsShapes, type A11yPrefs } from './a11yPrefs';
 import { KIND_ICON, KIND_WORD, kindStrong, PALETTE_LABELS, PALETTES, STATUS_KINDS, type Palette } from './statusLook';
 
-function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes' | 'headBob' | 'cameraShake' | 'centerDot' | 'readableFont' | 'highContrast'; children: ReactNode; hint?: string; disabled?: boolean }) {
+function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes' | 'readableFont' | 'highContrast'; children: ReactNode; hint?: string; disabled?: boolean }) {
   const on = useA11y((s) => s.prefs[k]);
   const hintId = useId();
   return (
@@ -24,7 +24,7 @@ function Toggle({ k, children, hint, disabled }: { k: 'captions' | 'statusShapes
   );
 }
 
-function Slider({ k, label, unit, describe }: { k: 'captionSize' | 'captionBg' | 'fov' | 'uiScale'; label: string; unit: string; describe?: (v: number) => string }) {
+function Slider({ k, label, unit, describe }: { k: 'captionSize' | 'captionBg' | 'uiScale'; label: string; unit: string; describe?: (v: number) => string }) {
   const v = useA11y((s) => s.prefs[k]);
   const { min, max, step } = LIMITS[k];
   return (

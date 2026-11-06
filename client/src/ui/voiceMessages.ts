@@ -10,7 +10,7 @@ import { useStore } from '../store';
 import { sliderGain } from './audioPrefs';
 import { speechClip, speechEnded, speechStarted, speechWord } from './captions';
 import { replyEnded } from './mic';
-import { audio, chirp, duckOthers, getAudioPrefs, groupOutput, holdMusicDuck, subscribeAudio } from './sfx';
+import { audio, chirp, duckOthers, getAudioPrefs, groupOutput, subscribeAudio } from './sfx';
 import { wonVoice } from './voiceClaim';
 import { enqueue, nextUp, type Queued, type ReplayKind } from './voiceQueue';
 
@@ -101,7 +101,7 @@ async function read(m: PhoneMessage, replay?: Exclude<ReplayKind, 'gone'>) {
   const { voiceName } = settings.voice;
   const provider = replay ? (replay === 'clip' ? 'elevenlabs' : 'browser') : settings.voice.provider;
   if (provider === 'off') return; // turned off while it waited
-  const now: { rec: SpokenRecord | null; unduckMusic?: () => void } = { rec: null };
+  const now: { rec: SpokenRecord | null } = { rec: null };
   cutShort = false;
   const words = speechText(m.text);
   /** `clipMs`: a recording's length (null for the browser's voice), and how many clips the message has. */
@@ -112,7 +112,6 @@ async function read(m: PhoneMessage, replay?: Exclude<ReplayKind, 'gone'>) {
     if (spoken.length > 50) spoken.splice(0, spoken.length - 50);
     useStore.setState({ voiceSpeaking: m.id });
     duckOthers(true);
-    now.unduckMusic = holdMusicDuck();
   };
   try {
     if (provider === 'browser') await speak(words, voiceName, () => began(null), (i) => speechWord(m.id, i));
@@ -137,7 +136,6 @@ async function read(m: PhoneMessage, replay?: Exclude<ReplayKind, 'gone'>) {
       speechEnded(m.id);
       now.rec.end = performance.now();
       duckOthers(false);
-      now.unduckMusic?.();
       useStore.setState({ voiceSpeaking: null });
       if (!replay && !cutShort && m.from === 'ceo' && !queue.length && !replayNext) replyEnded();
     }

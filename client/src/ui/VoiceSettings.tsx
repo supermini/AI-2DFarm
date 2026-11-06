@@ -11,7 +11,6 @@ import { confirmDialog } from './Confirm';
 import { micCaps, setHandsFree } from './mic';
 import { cantListen } from './micText';
 import { getAudioPrefs } from './sfx';
-import { keyName } from './controls';
 import { Key } from './Key';
 import { browserVoices, searchVoices, voiceLabels, type BrowserVoice } from './voicePicker';
 import { playClip, speakLine, stopVoice } from './voicePlayback';
@@ -36,7 +35,7 @@ type Save = (patch: Partial<Voice>) => void;
 type Playing = string | null;
 
 function hintMuted() {
-  if (getAudioPrefs().muted) useStore.getState().pushToast('info', `🔇 Sound is off: press ${keyName('mute')} to hear it`);
+  if (getAudioPrefs().muted) useStore.getState().pushToast('info', '🔇 Sound is off: turn it on in Settings → Notifications');
 }
 
 /** The browser's voices, which arrive asynchronously; null where the browser can't speak. */

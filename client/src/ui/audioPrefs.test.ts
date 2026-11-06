@@ -4,63 +4,37 @@ import { DEFAULT_AUDIO_PREFS, normalizeAudioPrefs, parseAudioPrefs, sliderGain }
 describe('parseAudioPrefs', () => {
   it('uses the defaults when nothing is saved', () => {
     expect(parseAudioPrefs(null)).toEqual(DEFAULT_AUDIO_PREFS);
-    expect(DEFAULT_AUDIO_PREFS).toMatchObject({ steps: 100, typing: 100, babble: 100, toys: 100, alerts: 100, music: 100, voice: 100, outside: 100 });
-    // the agents chat now and then, with their babble voices
-    expect(DEFAULT_AUDIO_PREFS).toMatchObject({ chatter: 'quiet', silentBubbles: false });
-    // the soundtrack is on, but low
-    expect(DEFAULT_AUDIO_PREFS).toMatchObject({ soundtrack: true, score: 30 });
+    expect(DEFAULT_AUDIO_PREFS).toMatchObject({ alerts: 100, voice: 100 });
+    expect(DEFAULT_AUDIO_PREFS).toMatchObject({ mergeChime: false });
   });
 
   it('keeps old { volume, muted } settings and fills in the groups', () => {
     expect(parseAudioPrefs('{"volume":40,"muted":true}')).toEqual({
       volume: 40,
       muted: true,
-      soundtrack: true,
-      chatter: 'quiet',
-      silentBubbles: false,
-      steps: 100,
-      typing: 100,
-      babble: 100,
-      toys: 100,
-      alerts: 100,
-      music: 100,
-      voice: 100,
-      outside: 100,
-      score: 30,
       mergeChime: false,
+      alerts: 100,
+      voice: 100,
+    });
+  });
+
+  it('still loads settings saved by the 3D office, dropping what the dashboard no longer has', () => {
+    expect(
+      parseAudioPrefs(
+        '{"volume":55,"muted":false,"mergeChime":true,"steps":0,"typing":35,"babble":40,"toys":80,"alerts":60,"music":45,"voice":70,"outside":60,"score":10,"soundtrack":false,"chatter":"lively","silentBubbles":true}',
+      ),
+    ).toEqual({
+      volume: 55,
+      muted: false,
+      mergeChime: true,
+      alerts: 60,
+      voice: 70,
     });
   });
 
   it('round-trips saved group levels', () => {
-    const saved = { volume: 55, muted: false, soundtrack: false, chatter: 'lively', silentBubbles: true, mergeChime: true, steps: 0, typing: 35, babble: 40, toys: 80, alerts: 100, music: 45, voice: 60, outside: 60, score: 10 };
+    const saved = { volume: 55, muted: false, mergeChime: true, alerts: 100, voice: 60 };
     expect(parseAudioPrefs(JSON.stringify(saved))).toEqual(saved);
-  });
-
-  it('fills in the Outside level for settings saved before it existed', () => {
-    expect(parseAudioPrefs('{"volume":55,"muted":false,"steps":0,"typing":35,"toys":80,"alerts":100,"music":45}')).toMatchObject({ music: 45, outside: 100 });
-  });
-
-  it('fills in the Soundtrack, on and low, for settings saved before it existed', () => {
-    expect(parseAudioPrefs('{"volume":55,"muted":false,"music":45,"outside":60}')).toMatchObject({ music: 45, outside: 60, soundtrack: true, score: 30 });
-  });
-
-  it('only turns the Soundtrack off when it was saved off', () => {
-    expect(normalizeAudioPrefs({ soundtrack: false }).soundtrack).toBe(false);
-    for (const v of [true, 'false', 0, null, undefined, {}]) expect(normalizeAudioPrefs({ soundtrack: v }).soundtrack).toBe(true);
-  });
-
-  it('fills in quiet chatter with babble for settings saved before it existed', () => {
-    expect(parseAudioPrefs('{"volume":55,"muted":false,"typing":35,"score":10}')).toMatchObject({ typing: 35, score: 10, chatter: 'quiet', silentBubbles: false, babble: 100 });
-  });
-
-  it('keeps a known chatter level and falls back to quiet for anything else', () => {
-    for (const level of ['off', 'quiet', 'lively'] as const) expect(normalizeAudioPrefs({ chatter: level }).chatter).toBe(level);
-    for (const v of ['loud', 'OFF', 1, true, null, {}, ['off']]) expect(normalizeAudioPrefs({ chatter: v }).chatter).toBe('quiet');
-  });
-
-  it('only goes to silent bubbles when it was saved that way', () => {
-    expect(normalizeAudioPrefs({ silentBubbles: true }).silentBubbles).toBe(true);
-    for (const v of [false, 'true', 1, null, undefined]) expect(normalizeAudioPrefs({ silentBubbles: v }).silentBubbles).toBe(false);
   });
 
   it('falls back to the defaults for corrupt JSON or a non-object', () => {
@@ -70,16 +44,16 @@ describe('parseAudioPrefs', () => {
 
 describe('normalizeAudioPrefs', () => {
   it('replaces out-of-range or non-numeric values with their default, one by one', () => {
-    expect(normalizeAudioPrefs({ volume: 140, muted: 'yes', steps: -5, typing: '50', toys: NaN, alerts: 20 })).toEqual({ ...DEFAULT_AUDIO_PREFS, alerts: 20 });
-    expect(normalizeAudioPrefs({ volume: null, steps: Infinity, typing: {}, toys: [] })).toEqual(DEFAULT_AUDIO_PREFS);
+    expect(normalizeAudioPrefs({ volume: 140, muted: 'yes', alerts: -5, voice: '50' })).toEqual(DEFAULT_AUDIO_PREFS);
+    expect(normalizeAudioPrefs({ volume: null, alerts: Infinity, voice: {} })).toEqual(DEFAULT_AUDIO_PREFS);
   });
 
   it('keeps the ends of the range and rounds to whole percent', () => {
-    expect(normalizeAudioPrefs({ volume: 0, steps: 100, typing: 33.6, toys: 0, alerts: 99.4 })).toMatchObject({ volume: 0, steps: 100, typing: 34, toys: 0, alerts: 99 });
+    expect(normalizeAudioPrefs({ volume: 0, alerts: 100, voice: 33.6 })).toMatchObject({ volume: 0, alerts: 100, voice: 34 });
   });
 
-  it('ignores unknown keys', () => {
-    expect(normalizeAudioPrefs({ volume: 10, radio: 50 })).toEqual({ ...DEFAULT_AUDIO_PREFS, volume: 10 });
+  it('ignores unknown keys, including the 3D office’s groups and toggles', () => {
+    expect(normalizeAudioPrefs({ volume: 10, radio: 50, steps: 0, soundtrack: false, chatter: 'lively', silentBubbles: true })).toEqual({ ...DEFAULT_AUDIO_PREFS, volume: 10 });
   });
 });
 

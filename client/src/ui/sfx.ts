@@ -1,15 +1,14 @@
-// Every office sound, synthesized with WebAudio (no audio files): the mixer's 2D core. One shared AudioContext: sounds
-// go through their group's gain (footsteps, typing, toys, alerts; or straight on), then the master gain, so volume and
-// mute apply to everything at once, then a gentle compressor. Audio is optional: when it's blocked or unavailable
-// (headless browsers), sounds just don't play, but window.__swarmSfx still records them.
+// The dashboard's sounds, synthesized with WebAudio (no audio files). One shared AudioContext: sounds go through their
+// group's gain (alerts, voice; or straight on), then the master gain, so volume and mute apply to everything at once,
+// then a gentle compressor. Audio is optional: when it's blocked or unavailable (headless browsers), sounds just don't
+// play, but window.__swarmSfx still records them.
 // Messages read aloud (voiceMessages.ts) have their own 'voice' group, which skips the bus that ducks everything else.
 // While the 🎙 listens (mic.ts) everything dips, the voice too, and event cues wait until it closes.
 
 import { normalizeAudioPrefs, parseAudioPrefs, SOUND_GROUPS, sliderGain, type AudioPrefs, type SoundGroup } from './audioPrefs';
-import { DROP_NEW, PLAY, type Vec3, voiceToDrop } from './sfxMix';
+import { DROP_NEW, PLAY, voiceToDrop } from './sfxMix';
 
 export type { SoundGroup } from './audioPrefs';
-export type { Vec3 } from './sfxMix';
 
 const PREFS_KEY = 'cubefarm:audio';
 
@@ -69,7 +68,6 @@ export function audio(): { ctx: AudioContext; out: GainNode } | null {
         gain.connect(g === 'voice' ? master : bus);
         groupGains[g] = gain;
       }
-      spatial?.wire(ctx, groupGains as Record<SoundGroup, GainNode>, bus);
     }
     if (ctx.state === 'suspended') void ctx.resume().catch(() => undefined);
     // Don't queue sounds on a stopped clock: they'd all fire at once when it starts.
@@ -131,7 +129,6 @@ export function setAudioPrefs(patch: Partial<AudioPrefs>) {
   for (const fn of listeners) fn();
 }
 
-export const toggleMute = () => setAudioPrefs({ muted: !prefs.muted });
 
 /** Turns every sound but the voice down by about 8 dB (while a message is read aloud), or back up. */
 export function duckOthers(on: boolean) {
@@ -151,29 +148,6 @@ function applyDuck() {
   setGroupLevel('voice', groupLevels.voice);
 }
 
-// The jukebox (music.ts, 3D only) ducks under voices and the mic: it registers how, and holds taken before it loads
-// take it then.
-interface DuckHold {
-  release: (() => void) | null;
-}
-const duckHolds = new Set<DuckHold>();
-let musicDuck: (() => () => void) | null = null;
-
-/** Ducks the music, when there is any, until the returned function is called: for spoken messages, voice clips, the 🎙. */
-export function holdMusicDuck(): () => void {
-  const h: DuckHold = { release: musicDuck?.() ?? null };
-  duckHolds.add(h);
-  return () => {
-    if (duckHolds.delete(h)) h.release?.();
-  };
-}
-
-/** music.ts says how to duck it (`hold` ducks until its result is called). */
-export function onMusicDuck(hold: () => () => void) {
-  musicDuck = hold;
-  for (const h of duckHolds) h.release ??= hold();
-}
-
 /** The 🎙 opened or closed: other sounds and a message being read dip while it listens, and cues wait for it. */
 export function setMicOpen(on: boolean) {
   if (micOpen === on) return;
@@ -182,72 +156,16 @@ export function setMicOpen(on: boolean) {
   if (!on && pending && !timer) timer = setTimeout(flush, GATHER_MS);
 }
 
-// ---------- the 3D office's side (sfxSpatial.ts) ----------
-
-/** How walls muffle a sound (acoustics.ts's Occlusion): its gain, and a lowpass cutoff (Hz). */
-export interface Muffle {
-  gain: number;
-  cutoff: number;
-}
-
-/** What the 3D office adds to the mixer: sounds placed in the world, the listener, the rooms' reverb. */
-export interface Spatial {
-  /** For the probe: a sound at `pos`'s level from distance (0 out of earshot; `falloff` replaces the office's model) and its pan. */
-  measure(pos: Vec3, falloff?: (d: number) => number): { gain: number; pan: number };
-  /** Whether a sound at `pos` plays: null when it's too far, else its level from distance and how the walls muffle it. */
-  hear(pos: Vec3): { near: number; walls: Muffle | null } | null;
-  /** The nodes a sound at `pos` goes through into `dest` (a panner; a lowpass when walls muffle it): returns their input. */
-  route(c: AudioContext, pos: Vec3, walls: Muffle | null, dest: AudioNode): AudioNode;
-  /** The context is made: the groups' room sends (into the reverb, which returns to `bus`) and the listener. */
-  wire(c: AudioContext, groups: Readonly<Record<SoundGroup, GainNode>>, bus: GainNode): void;
-  /** Where the listener stands and faces, for captions' arrows. */
-  ears(): { at: Readonly<Vec3>; fwd: Readonly<Vec3> };
-  /** Where a sound that plays everywhere comes from (the gong), for its caption's arrow. */
-  anchorOf(name: string): Vec3 | null;
-  /** More about a sound for its caption (the song a jukebox entry is). */
-  detailOf(name: string): Promise<string | undefined>;
-}
-
-let spatial: Spatial | null = null;
-
-/** The 3D office's side of the mixer joins (sfxSpatial.ts, once, as it loads). */
-export function registerSpatial(s: Spatial) {
-  spatial = s;
-  if (ctx && bus) s.wire(ctx, groupGains as Record<SoundGroup, GainNode>, bus);
-}
-
-/** The 3D office's side, or null with only the 2D core loaded (pocket mode). */
-export const spatialSide = () => spatial;
-
 // ---------- the probe (window.__swarmSfx) ----------
 
 /** One sound that was asked for, as recorded for QA and e2e. */
 export interface SfxRecord {
   name: string;
   group: SoundGroup | null;
-  /** Where in the world, or null for a non-positional sound. */
-  at: Vec3 | null;
-  /** Peak after distance and the group level, before the master volume (0 when culled for distance). */
+  /** Peak after the group level, before the master volume. */
   gain: number;
-  /** -1 (left) to 1 (right) from where the listener faces; a non-positional sound's own `pan` (default 0). */
-  pan: number;
-  /** Whether it was actually scheduled (false while locked, unavailable, too far away or over the voice cap). */
+  /** Whether it was actually scheduled (false while locked, unavailable, or over the voice cap). */
   played: boolean;
-  /** Where its panner really was when it played, for sounds on long-lived panners (typing); else absent. */
-  from?: Vec3 | null;
-  /** The jukebox's music: its volume level (1-6) and whether it's ducked under an alert or speech. */
-  level?: number;
-  ducked?: boolean;
-  /** The jukebox's music: whether its vinyl crackle bed is playing (lo-fi songs). */
-  crackle?: boolean;
-  /** Heard through a wall or from another space (gain already lowered). */
-  occluded?: boolean;
-  /** The room's reverb (room:… entries): the room and its wet level. */
-  room?: string;
-  wet?: number;
-  /** The soundtrack (score:… entries): its mood and the one before. */
-  mood?: string;
-  prev?: string;
   /** performance.now() when it was asked for. */
   t: number;
 }
@@ -260,39 +178,32 @@ type SoundListener = (rec: SfxRecord, heard: boolean) => void;
 let soundListener: SoundListener | null = null;
 
 /**
- * Captions (captions.ts) hear of every sound recorded in __swarmSfx: `heard` is false when it's out of earshot, or when
- * its caller says it didn't play (a loop going silent). Mute and the volume sliders don't count: a muted office still
- * gets its captions.
+ * Captions (captions.ts) hear of every sound recorded in __swarmSfx: `heard` is false when its caller says it didn't
+ * play (a loop going silent). Mute and the volume sliders don't count: a muted office still gets its captions.
  */
 export function onSoundRecorded(fn: SoundListener | null) {
   soundListener = fn;
 }
 
 /**
- * Records a sound in window.__swarmSfx (the last 50). tone() and noise() call it themselves; long-lived loops call it
- * when they start. `peak` is the sound's level before distance; returns the record so `played` can be set later.
- * Sounds frequent enough to crowd everything else out (typing) pass a `log` of their own. A sound with its own distance
- * model (the jukebox) passes `falloff`: its gain at `d` metres, in place of the office's.
+ * Records a sound in window.__swarmSfx (the last 50). tone() and noise() call it themselves. `peak` is the sound's
+ * level before the group level; returns the record so `played` can be set later.
  */
 export function recordSfx(
   name: string,
-  { group, pos, pan = 0, peak, played, falloff }: { group?: SoundGroup; pos?: Vec3; pan?: number; peak: number; played?: boolean; falloff?: (d: number) => number },
+  { group, peak, played }: { group?: SoundGroup; peak: number; played?: boolean },
   log: SfxRecord[] = probe,
 ) {
-  const m = pos && spatial ? spatial.measure(pos, falloff) : null;
-  const atDistance = m ? m.gain : 1;
   const rec: SfxRecord = {
     name,
     group: group ?? null,
-    at: pos ? { x: pos.x, y: pos.y, z: pos.z } : null,
-    gain: peak * atDistance * (group ? groupLevels[group] : 1),
-    pan: m ? m.pan : pan,
+    gain: peak * (group ? groupLevels[group] : 1),
     played: played ?? false,
     t: performance.now(),
   };
   log.push(rec);
   if (log.length > PROBE_SIZE) log.splice(0, log.length - PROBE_SIZE);
-  if (log === probe) soundListener?.(rec, atDistance > 0 && played !== false);
+  if (log === probe) soundListener?.(rec, played !== false);
   return rec;
 }
 
@@ -303,18 +214,6 @@ export function groupOutput(group?: SoundGroup): AudioNode | null {
   const a = audio();
   if (!a) return null;
   return (group && groupGains[group]) || bus || a.out;
-}
-
-type AlertListener = (c: BaseAudioContext, start: number, end: number) => void;
-let alertListener: AlertListener | null = null;
-
-/** The music ducks under the alerts group: `fn` hears of every alert sound that plays (context times). */
-export function onAlertSound(fn: AlertListener | null) {
-  alertListener = fn;
-}
-
-function alerted(opts: PlaceOpts, c: BaseAudioContext, start: number, end: number) {
-  if (opts.group === 'alerts') alertListener?.(c, start, end);
 }
 
 // ---------- voices ----------
@@ -334,36 +233,20 @@ export interface PlaceOpts {
   name?: string;
   /** Mixer group; without one the sound goes straight to the master gain. */
   group?: SoundGroup;
-  /** Where in the world (metres): in the 3D office the sound pans and fades with distance, and isn't played beyond ~16 m. */
-  pos?: Vec3;
-  /** A fixed stereo position, -1 (left) to 1 (right), for sounds without `pos` (the player's own feet). */
-  pan?: number;
-  /** Part of a sound already in __swarmSfx (recordSfx): one entry for a sound made of several parts. */
-  into?: SfxRecord;
 }
 
 /**
- * Records a sound for the probe and decides whether it plays. Returns where to connect it (a panner, its group or
- * the master; through a muffling lowpass when walls are in the way), how much the walls turn it down (`scale`) and its
- * loudness for the voice cap, or null to skip it.
+ * Records a sound for the probe and decides whether it plays. Returns where to connect it (its group or the master)
+ * and its loudness for the voice cap, or null to skip it.
  */
-function place(kind: string, { name, group, pos, pan, into }: PlaceOpts, peak: number): { a: { ctx: AudioContext; out: GainNode }; dest: AudioNode; loud: number; scale: number } | null {
-  const rec = into ?? recordSfx(name ?? kind, { group, pos, pan, peak });
-  const where = pos && spatial ? spatial.hear(pos) : null;
-  if (pos && spatial && !where) return null;
-  const occ = where?.walls ?? null;
-  const scale = occ?.gain ?? 1;
-  if (occ && !rec.occluded) {
-    rec.occluded = true;
-    rec.gain *= scale;
-  }
-  const loud = peak * scale * (where?.near ?? 1);
+function place(kind: string, { name, group }: PlaceOpts, peak: number): { a: { ctx: AudioContext; out: GainNode }; dest: AudioNode; loud: number; scale: number } | null {
+  const rec = recordSfx(name ?? kind, { group, peak });
   const a = audio();
   if (!a) return null;
 
   const now = a.ctx.currentTime;
   for (let i = voices.length - 1; i >= 0; i--) if (voices[i].end <= now) voices.splice(i, 1);
-  const drop = voiceToDrop(voices, loud);
+  const drop = voiceToDrop(voices, peak);
   if (drop === DROP_NEW) return null;
   if (drop !== PLAY) {
     const v = voices[drop];
@@ -377,23 +260,12 @@ function place(kind: string, { name, group, pos, pan, into }: PlaceOpts, peak: n
     }
   }
 
-  let dest: AudioNode = (group && groupGains[group]) || bus || a.out;
-  try {
-    if (pos && where && spatial) dest = spatial.route(a.ctx, pos, occ, dest);
-    else if (pan && a.ctx.createStereoPanner) {
-      const p = a.ctx.createStereoPanner();
-      p.pan.value = pan;
-      p.connect(dest);
-      dest = p;
-    }
-  } catch {
-    return null;
-  }
+  const dest: AudioNode = (group && groupGains[group]) || bus || a.out;
   rec.played = true;
-  return { a, dest, loud, scale };
+  return { a, dest, loud: peak, scale: 1 };
 }
 
-// ---------- building blocks (exported so toys can add their sounds through the same mixer) ----------
+// ---------- building blocks ----------
 
 export interface ToneOpts extends PlaceOpts {
   freq: number;
@@ -425,7 +297,6 @@ export function tone(opts: ToneOpts) {
     osc.start(t0);
     osc.stop(t0 + dur + 0.05);
     voices.push({ end: t0 + dur + 0.05, loud: p.loud, env: gain, src: osc });
-    alerted(opts, a.ctx, t0, t0 + dur);
   } catch {
     // audio is optional
   }
@@ -444,7 +315,7 @@ export interface NoiseOpts extends PlaceOpts {
 
 let noiseBuf: AudioBuffer | null = null;
 
-/** A burst of filtered white noise: footsteps, whooshes, pops. */
+/** A burst of filtered white noise: whooshes, pops. */
 export function noise(opts: NoiseOpts) {
   const { at = 0, dur, peak, filter = 'lowpass', freq, to, q = 1, attack = 0.005 } = opts;
   const p = place('noise', opts, peak);
@@ -472,16 +343,9 @@ export function noise(opts: NoiseOpts) {
     src.start(t0, Math.random());
     src.stop(t0 + dur + 0.05);
     voices.push({ end: t0 + dur + 0.05, loud: p.loud, env: gain, src });
-    alerted(opts, a.ctx, t0, t0 + dur);
   } catch {
     // audio is optional
   }
-}
-
-// For QA: __swarmSfxPing(x, y, z) plays a soft test blip at that spot, to hear (and see in __swarmSfx) it pan and fade.
-if (typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).__swarmSfxPing = (x: number, y: number, z: number) =>
-    tone({ name: 'ping', group: 'alerts', pos: { x, y, z }, freq: 880, type: 'triangle', dur: 0.3, peak: 0.12 });
 }
 
 // ---------- the office's sounds ----------

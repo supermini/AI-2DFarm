@@ -4,7 +4,7 @@ import { DEFAULT_A11Y, LIMITS, normalizeA11yPrefs, parseA11yPrefs, reducesMotion
 describe('parseA11yPrefs', () => {
   it('uses the defaults when nothing is saved, and the defaults change nothing', () => {
     expect(parseA11yPrefs(null)).toEqual(DEFAULT_A11Y);
-    expect(DEFAULT_A11Y).toMatchObject({ captions: false, palette: 'standard', statusShapes: false, fov: 72, headBob: true, cameraShake: true, centerDot: false, uiScale: 100, readableFont: false, highContrast: false });
+    expect(DEFAULT_A11Y).toMatchObject({ captions: false, palette: 'standard', statusShapes: false, uiScale: 100, readableFont: false, highContrast: false });
   });
 
   it('round-trips every setting', () => {
@@ -14,11 +14,7 @@ describe('parseA11yPrefs', () => {
       captionBg: 40,
       palette: 'tritanopia',
       statusShapes: true,
-      fov: 90,
-      headBob: false,
-      cameraShake: false,
       reduceMotion: 'on',
-      centerDot: true,
       uiScale: 135,
       readableFont: true,
       highContrast: true,
@@ -38,18 +34,18 @@ describe('parseA11yPrefs', () => {
 describe('normalizeA11yPrefs', () => {
   it('replaces each bad value with its own default, keeping the good ones', () => {
     expect(
-      normalizeA11yPrefs({ captions: 'yes', captionSize: 500, captionBg: -1, palette: 'sepia', statusShapes: 1, fov: 30, headBob: null, cameraShake: false, reduceMotion: 'sometimes', centerDot: true, uiScale: NaN, readableFont: {}, highContrast: true }),
-    ).toEqual({ ...DEFAULT_A11Y, cameraShake: false, centerDot: true, highContrast: true });
-    expect(normalizeA11yPrefs({ fov: Infinity, uiScale: '120', captionSize: [] })).toEqual(DEFAULT_A11Y);
+      normalizeA11yPrefs({ captions: 'yes', captionSize: 500, captionBg: -1, palette: 'sepia', statusShapes: 1, reduceMotion: 'sometimes', uiScale: NaN, readableFont: {}, highContrast: true }),
+    ).toEqual({ ...DEFAULT_A11Y, highContrast: true });
+    expect(normalizeA11yPrefs({ uiScale: '120', captionSize: [] })).toEqual(DEFAULT_A11Y);
   });
 
   it('keeps the ends of each range and snaps to its step', () => {
-    expect(normalizeA11yPrefs({ fov: LIMITS.fov.min, uiScale: LIMITS.uiScale.max, captionSize: LIMITS.captionSize.min, captionBg: 0 })).toMatchObject({ fov: 60, uiScale: 150, captionSize: 75, captionBg: 0 });
-    expect(normalizeA11yPrefs({ fov: 84.6, uiScale: 117, captionSize: 128, captionBg: 52 })).toMatchObject({ fov: 85, uiScale: 115, captionSize: 130, captionBg: 50 });
+    expect(normalizeA11yPrefs({ uiScale: LIMITS.uiScale.max, captionSize: LIMITS.captionSize.min, captionBg: 0 })).toMatchObject({ uiScale: 150, captionSize: 75, captionBg: 0 });
+    expect(normalizeA11yPrefs({ uiScale: 117, captionSize: 128, captionBg: 52 })).toMatchObject({ uiScale: 115, captionSize: 130, captionBg: 50 });
   });
 
-  it('ignores unknown keys', () => {
-    expect(normalizeA11yPrefs({ subtitles: true, fov: 80 })).toEqual({ ...DEFAULT_A11Y, fov: 80 });
+  it('ignores unknown keys, including the 3D office’s camera ones', () => {
+    expect(normalizeA11yPrefs({ subtitles: true, fov: 80, headBob: false, cameraShake: false, centerDot: true, uiScale: 110 })).toEqual({ ...DEFAULT_A11Y, uiScale: 110 });
   });
 });
 
